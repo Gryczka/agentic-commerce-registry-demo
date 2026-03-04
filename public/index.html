@@ -1,19 +1,2910 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Hello, World!</title>
-	</head>
-	<body>
-		<h1 id="heading"></h1>
-		<script>
-			fetch('/message')
-				.then((resp) => resp.text())
-				.then((text) => {
-					const h1 = document.getElementById('heading');
-					h1.textContent = text;
-				});
-		</script>
-	</body>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/logos/cloudflare.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agentic Commerce Registry | Cloudflare</title>
+  <meta name="description" content="A decentralized identity registry enabling trusted commerce between shoppers, merchants, and AI agents on Cloudflare Workers." />
+  <style>
+    /* ─── Custom Fonts ────────────────────── */
+    @font-face {
+      font-family: 'FT Kunst Grotesk';
+      src: url('/fonts/Kunst%20Grotesk%20Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'FT Kunst Grotesk';
+      src: url('/fonts/Kunst%20Grotesk%20Medium.woff2') format('woff2');
+      font-weight: 500;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Apercu Mono Pro';
+      src: url('/fonts/Apercu%20Mono%20Pro%20Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-display: swap;
+    }
+
+    /* ─── Design Tokens (Cloudflare Warm Light) ── */
+    :root {
+      --bg: #f5f1eb;
+      --bg-card: #fffbf5;
+      --bg-card-hover: #fef7ed;
+      --border: #ebd5c1;
+      --border-accent: #f63;
+      --text: #521000;
+      --text-dim: #52100099;
+      --text-heading: #521000;
+      --accent: #f63;
+      --accent-light: #f63;
+      --accent-hover: #e55a2b;
+      --success: #16a34a;
+      --success-bg: rgba(22,163,74,0.1);
+      --warning: #d97706;
+      --warning-bg: rgba(217,119,6,0.1);
+      --error: #dc2626;
+      --error-bg: rgba(220,38,38,0.1);
+      --purple: #7c3aed;
+      --purple-bg: rgba(124,58,237,0.1);
+      --cyan: #0891b2;
+      --orange: #f63;
+      --font-mono: 'Apercu Mono Pro', ui-monospace, SFMono-Regular, 'SF Mono', Monaco, Consolas, monospace;
+      --font-sans: 'FT Kunst Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    code, pre { font-family: var(--font-mono); }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    /* ─── Scrollbar ────────────────────────── */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #52100060; }
+
+    /* ─── Animations ──────────────────────── */
+    @keyframes fade-in {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: 0.5s ease-out forwards fade-in; }
+
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .animate-pulse-subtle { animation: 2s ease-in-out infinite pulse-subtle; }
+
+    /* ─── Hero ─────────────────────────────── */
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 20px;
+      background: rgba(255,102,51,0.1);
+      border: 1px solid rgba(255,102,51,0.25);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--text-heading);
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+    .hero p {
+      font-size: 18px;
+      color: var(--text-dim);
+      max-width: 640px;
+      margin: 0 auto 32px;
+      line-height: 1.625;
+    }
+    .hero-cta {
+      display: inline-block;
+      padding: 12px 28px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 15px;
+      transition: background 0.2s, transform 0.15s;
+      box-shadow: 0 1px 3px rgba(82,16,0,0.1);
+    }
+    .hero-cta:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .hero-cta:active { transform: scale(0.98); }
+
+    /* ─── Section ──────────────────────────── */
+    section { padding: 60px 0; }
+    .section-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-heading);
+      margin-bottom: 12px;
+    }
+    .section-subtitle {
+      font-size: 16px;
+      color: var(--text-dim);
+      margin-bottom: 40px;
+      max-width: 600px;
+      line-height: 1.625;
+    }
+
+    /* ─── Participants ─────────────────────── */
+    .participants-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    @media (max-width: 768px) {
+      .participants-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 32px; }
+      .hero p { font-size: 16px; }
+      .hero { padding: 48px 0 36px; }
+      .section-title { font-size: 24px; }
+      .diagram-container { padding: 16px; }
+      .diagram-container svg { min-width: 700px; }
+      .trace-entry {
+        grid-template-columns: 64px 36px 1fr auto;
+        font-size: 10px;
+        gap: 4px;
+        padding: 5px 6px;
+      }
+      .trace-service { font-size: 8px; padding: 2px 4px; }
+      .timing-legend { gap: 6px; font-size: 9px; }
+      .pop-badge { font-size: 10px; padding: 2px 8px; }
+    }
+    .participant-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 1px 3px rgba(82,16,0,0.06);
+    }
+    .participant-card:hover {
+      border-color: var(--border-accent);
+      background: var(--bg-card-hover);
+      box-shadow: 0 4px 12px rgba(82,16,0,0.08);
+    }
+    .participant-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+    .participant-icon.shopper { background: rgba(22,163,74,0.1); }
+    .participant-icon.merchant { background: rgba(255,102,51,0.1); }
+    .participant-icon.agent { background: rgba(124,58,237,0.1); }
+    .participant-card h3 {
+      font-size: 20px;
+      color: var(--text-heading);
+      margin-bottom: 8px;
+    }
+    .participant-card p {
+      color: var(--text-dim);
+      font-size: 14px;
+      line-height: 1.625;
+    }
+
+    /* ─── Architecture Diagram ─────────────── */
+    .diagram-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 40px;
+      overflow-x: auto;
+      box-shadow: 0 1px 3px rgba(82,16,0,0.06);
+    }
+    .diagram-container svg { display: block; margin: 0 auto; }
+
+    /* ─── Scenario ─────────────────────────── */
+    .scenario-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+    }
+    .scenario-step {
+      display: flex;
+      gap: 20px;
+      padding: 20px 0;
+    }
+    .step-number {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      border-radius: 50%;
+      background: rgba(255,102,51,0.1);
+      border: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--accent);
+    }
+    .step-content h4 {
+      color: var(--text-heading);
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+    .step-content p {
+      color: var(--text-dim);
+      font-size: 14px;
+      line-height: 1.625;
+    }
+
+    /* ─── Interactive Demo ─────────────────── */
+    .demo-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      min-height: 600px;
+    }
+    @media (max-width: 960px) {
+      .demo-layout { grid-template-columns: 1fr; }
+      .demo-layout { min-height: auto; }
+    }
+    @media (max-width: 480px) {
+      .container { padding: 0 12px; }
+      .hero h1 { font-size: 26px; }
+      .participant-card { padding: 20px; }
+      .demo-step-header { padding: 10px 12px; gap: 8px; }
+      .demo-step-body { padding: 0 12px 12px; }
+      .code-block { font-size: 11px; padding: 8px; }
+      .kv-summary { flex-direction: column; gap: 8px; padding: 10px 12px; }
+    }
+    .demo-steps-panel, .demo-trace-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(82,16,0,0.06);
+    }
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-heading);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-header .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+    .panel-header .dot.green { background: var(--success); }
+    .panel-header .dot.blue { background: var(--accent); }
+
+    /* Steps List */
+    .demo-steps-list {
+      padding: 12px;
+      max-height: 700px;
+      overflow-y: auto;
+    }
+    .demo-step-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .demo-step-item.active { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(255,102,51,0.15); }
+    .demo-step-item.completed { border-color: var(--success); }
+    .demo-step-header {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .demo-step-header:hover { background: rgba(82,16,0,0.03); }
+    .step-indicator {
+      width: 28px; height: 28px; min-width: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      border: 2px solid var(--border);
+      color: var(--text-dim);
+      transition: all 0.2s;
+    }
+    .demo-step-item.active .step-indicator {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(255,102,51,0.1);
+    }
+    .demo-step-item.completed .step-indicator {
+      border-color: var(--success);
+      color: #fff;
+      background: var(--success);
+    }
+    .step-title { font-size: 14px; font-weight: 600; color: var(--text-heading); flex: 1; }
+    .step-method {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .step-method.post { background: rgba(22,163,74,0.1); color: var(--success); }
+
+    .demo-step-body {
+      display: none;
+      padding: 0 16px 16px;
+    }
+    .demo-step-item.expanded .demo-step-body { display: block; }
+
+    /* Code blocks stay dark for contrast */
+    .code-block {
+      background: #1e1e2e;
+      border: 1px solid #31314a;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.5;
+      overflow-x: auto;
+      color: #cdd6f4;
+      white-space: pre;
+      margin: 8px 0;
+    }
+    .code-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .btn-run {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      margin-top: 8px;
+    }
+    .btn-run:hover { background: var(--accent-hover); }
+    .btn-run:active { transform: scale(0.98); }
+    .btn-run:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-run.running { background: var(--warning); }
+
+    .btn-reset {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: rgba(220,38,38,0.08);
+      color: var(--error);
+      border: 1px solid rgba(220,38,38,0.2);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-left: 8px;
+    }
+    .btn-reset:hover { background: rgba(220,38,38,0.15); }
+
+    .session-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: rgba(124,58,237,0.08);
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .session-badge code {
+      color: #7c3aed;
+      font-weight: 600;
+      font-family: inherit;
+    }
+
+    .response-block {
+      display: none;
+      margin-top: 12px;
+    }
+    .response-block.visible { display: block; }
+
+    /* Trace Panel */
+    .trace-timeline {
+      padding: 16px;
+      max-height: 700px;
+      overflow-y: auto;
+    }
+    .trace-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+    .trace-group {
+      margin-bottom: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      box-shadow: 0 1px 3px rgba(82,16,0,0.06);
+      transition: box-shadow 0.15s ease;
+    }
+    .trace-group:hover {
+      box-shadow: 0 2px 8px rgba(82,16,0,0.10);
+    }
+    .trace-group-header {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .trace-group-header .trace-step-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(255,102,51,0.1);
+      border: 1px solid rgba(255,102,51,0.25);
+    }
+    .trace-entry {
+      display: grid;
+      grid-template-columns: 78px 60px 1fr auto;
+      gap: 8px;
+      padding: 6px 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      border-radius: 4px;
+      align-items: center;
+    }
+    .trace-entry:nth-child(even) { background: rgba(82,16,0,0.03); }
+    .trace-service {
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 600;
+      text-align: center;
+      font-size: 10px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .trace-service.round-trip { background: rgba(255,102,51,0.12); color: #c4430a; }
+    .trace-service.worker { background: rgba(37,99,235,0.1); color: #1d4ed8; }
+    .trace-service.kv { background: rgba(124,58,237,0.1); color: var(--purple); }
+    .trace-op { color: var(--text); overflow: hidden; text-overflow: ellipsis; }
+    .trace-duration {
+      text-align: right;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+    .trace-status-ok { color: var(--success); }
+    .trace-status-error { color: var(--error); }
+    .trace-bar-container {
+      margin-top: 4px;
+      height: 3px;
+      background: rgba(82,16,0,0.06);
+      border-radius: 2px;
+      overflow: hidden;
+      grid-column: 1 / -1;
+    }
+    .trace-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+    .trace-bar.worker-bar { background: var(--accent); }
+    .trace-bar.kv-bar { background: var(--purple); }
+    .trace-total {
+      padding: 8px;
+      margin-top: 4px;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      border-top: 1px solid var(--border);
+    }
+
+    /* ─── Tech Details ─────────────────────── */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 768px) {
+      .tech-grid { grid-template-columns: 1fr; }
+    }
+    .tech-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(82,16,0,0.06);
+    }
+    .tech-card h3 {
+      font-size: 18px;
+      color: var(--text-heading);
+      margin-bottom: 12px;
+    }
+    .tech-card table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .tech-card th, .tech-card td {
+      text-align: left;
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tech-card th { color: var(--text-dim); font-weight: 600; }
+    .tech-card td { color: var(--text); font-family: var(--font-mono); font-size: 12px; }
+
+    /* ─── Footer ───────────────────────────── */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    /* ─── Utilities ────────────────────────── */
+    /* JSON highlighting — used inside dark code blocks */
+    .json-key { color: #89b4fa; }
+    .json-string { color: #a6e3a1; }
+    .json-number { color: #fab387; }
+    .json-bool { color: #cba6f7; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+    /* ─── Rerun & Cold/Warm Comparison ────── */
+    .btn-rerun {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(124,58,237,0.08);
+      color: var(--purple);
+      border: 1px solid rgba(124,58,237,0.2);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-left: 8px;
+    }
+    .btn-rerun:hover { background: rgba(124,58,237,0.15); }
+    .btn-rerun:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ─── View Code Button & Modal ────────── */
+    .request-block-wrapper {
+      position: relative;
+    }
+    .btn-view-code {
+      position: absolute;
+      top: 16px;
+      right: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      background: rgba(255,255,255,0.08);
+      color: rgba(205,214,244,0.6);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+    .btn-view-code:hover {
+      background: rgba(255,255,255,0.15);
+      color: #cdd6f4;
+      border-color: rgba(255,255,255,0.25);
+    }
+    .code-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .code-modal-overlay.visible {
+      display: flex;
+    }
+    .code-modal {
+      background: #1e1e2e;
+      border: 1px solid #31314a;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 720px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+      animation: 0.2s ease-out forwards fade-in;
+    }
+    .code-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #31314a;
+      flex-shrink: 0;
+    }
+    .code-modal-header .modal-title {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #cdd6f4;
+      font-weight: 600;
+    }
+    .code-modal-header .modal-subtitle {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: rgba(205,214,244,0.5);
+      margin-left: 8px;
+    }
+    .code-modal-header .btn-modal-close {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(205,214,244,0.6);
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .code-modal-header .btn-modal-close:hover {
+      background: rgba(255,255,255,0.15);
+      color: #cdd6f4;
+    }
+    .code-modal-body {
+      overflow-y: auto;
+      padding: 0;
+      flex: 1;
+      min-height: 0;
+    }
+    .code-modal-body .code-block {
+      margin: 0;
+      border: none;
+      border-radius: 0 0 12px 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 16px 20px;
+      tab-size: 2;
+    }
+
+    /* TypeScript syntax highlighting (Catppuccin palette) */
+    .ts-keyword { color: #cba6f7; }
+    .ts-string { color: #a6e3a1; }
+    .ts-number { color: #fab387; }
+    .ts-comment { color: #585b70; font-style: italic; }
+    .ts-type { color: #89dceb; }
+    .ts-function { color: #89b4fa; }
+    .ts-property { color: #f38ba8; }
+    .ts-operator { color: #94e2d5; }
+    .ts-punctuation { color: #6c7086; }
+    /* Comment tag badges — make [Hono], [Workers], [Workers KV], etc. stand out */
+    .ts-tag { font-style: normal; font-weight: 600; border-radius: 3px; padding: 0 4px; font-size: 10px; }
+    .ts-tag-hono { background: rgba(250,179,135,0.15); color: #fab387; }
+    .ts-tag-workers { background: rgba(137,180,250,0.15); color: #89b4fa; }
+    .ts-tag-kv { background: rgba(203,166,247,0.15); color: #cba6f7; }
+    .ts-tag-app { background: rgba(166,227,161,0.15); color: #a6e3a1; }
+
+    .run-count-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      padding: 1px 6px;
+      border-radius: 8px;
+      background: rgba(82,16,0,0.06);
+      color: var(--text-dim);
+      margin-left: 6px;
+    }
+
+    .temp-badge {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+    }
+    .temp-badge.cold {
+      background: rgba(14,165,233,0.12);
+      color: #0284c7;
+      border: 1px solid rgba(14,165,233,0.25);
+    }
+    .temp-badge.warm {
+      background: rgba(234,88,12,0.12);
+      color: #c2410c;
+      border: 1px solid rgba(234,88,12,0.25);
+    }
+
+    .trace-delta {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      margin-left: 4px;
+    }
+    .trace-delta.faster { color: var(--success); }
+    .trace-delta.slower { color: var(--error); }
+    .trace-delta.same { color: var(--text-dim); }
+
+    .kv-summary {
+      display: flex;
+      gap: 16px;
+      padding: 12px 16px;
+      margin: 0 16px 12px;
+      background: rgba(124,58,237,0.05);
+      border: 1px solid rgba(124,58,237,0.15);
+      border-radius: 8px;
+      font-size: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .kv-summary-title {
+      font-weight: 700;
+      color: var(--purple);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .kv-summary-stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text);
+    }
+    .kv-summary-stat .label { color: var(--text-dim); font-family: var(--font-sans); }
+    .kv-summary-stat .value { font-weight: 700; }
+    .kv-summary-stat .value.cold-val { color: #0284c7; }
+    .kv-summary-stat .value.warm-val { color: #c2410c; }
+    .kv-summary-stat .delta-val { color: var(--success); font-weight: 600; }
+
+    /* ─── POP Location Badge ──────────────── */
+    .pop-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: rgba(255,102,51,0.08);
+      border: 1px solid rgba(255,102,51,0.2);
+      color: var(--accent);
+      margin-left: auto;
+      white-space: nowrap;
+      transition: all 0.3s ease;
+    }
+    .pop-badge .pop-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: 2s ease-in-out infinite pulse-subtle;
+    }
+    .pop-badge.detected {
+      background: rgba(22,163,74,0.08);
+      border-color: rgba(22,163,74,0.2);
+      color: var(--success);
+    }
+    .pop-badge.detected .pop-dot {
+      background: var(--success);
+    }
+    .trace-colo {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent);
+      font-weight: 600;
+      margin-left: auto;
+    }
+
+    /* ─── Timing Breakdown Bar ────────────── */
+    .timing-breakdown {
+      margin-top: 8px;
+      padding: 8px 0;
+    }
+    .timing-bar-row {
+      display: flex;
+      height: 20px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: rgba(82,16,0,0.04);
+    }
+    .timing-bar-segment {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 600;
+      color: #fff;
+      transition: width 0.4s ease;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .timing-bar-segment.seg-network { background: #f59e0b; }
+    .timing-bar-segment.seg-worker { background: #f63; }
+    .timing-bar-segment.seg-kv { background: #7c3aed; }
+    .timing-legend {
+      display: flex;
+      gap: 12px;
+      margin-top: 6px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      flex-wrap: wrap;
+    }
+    .timing-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .timing-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+    }
+    .timing-legend-dot.net { background: #f59e0b; }
+    .timing-legend-dot.wrk { background: #f63; }
+    .timing-legend-dot.kv { background: #7c3aed; }
+
+    /* ─── 3x Comparison Table ─────────────── */
+    .comparison-table-container {
+      margin: 16px 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(82,16,0,0.06);
+    }
+    .comparison-table-container h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-heading);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+    .comparison-table th {
+      text-align: left;
+      padding: 8px 10px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+      font-family: var(--font-sans);
+      font-weight: 600;
+      border-bottom: 2px solid var(--border);
+    }
+    .comparison-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid rgba(82,16,0,0.06);
+      color: var(--text);
+    }
+    .comparison-table td.step-name {
+      font-family: var(--font-sans);
+      font-weight: 500;
+      font-size: 13px;
+      max-width: 200px;
+    }
+    .comparison-table .cold-cell { color: #0284c7; font-weight: 600; }
+    .comparison-table .warm-cell { color: #c2410c; font-weight: 600; }
+    .comparison-table .hot-cell { color: #16a34a; font-weight: 600; }
+    .comparison-table .delta-cell { font-size: 11px; }
+    .comparison-table .delta-cell.faster { color: var(--success); }
+    .comparison-table .delta-cell.slower { color: var(--error); }
+
+    /* ─── Sparkline ────────────────────────── */
+    .sparkline-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 6px;
+    }
+    .sparkline-container svg {
+      display: block;
+    }
+    .sparkline-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Hero ────────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">Cloudflare Workers + KV Demo</div>
+    <h1>Agentic Commerce Registry</h1>
+    <p>
+      A decentralized identity registry enabling trusted commerce between shoppers,
+      merchants, and AI agents. Register identities, delegate purchasing authority,
+      and facilitate verified transactions including loans and leases.
+    </p>
+    <a href="#demo" class="hero-cta">Try the Interactive Demo</a>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ─── Participants ────────────────────────────────────────────────────────── -->
+<section>
+  <div class="container">
+    <h2 class="section-title">Three Participants</h2>
+    <p class="section-subtitle">
+      The registry connects three types of participants to enable agent-mediated commerce.
+    </p>
+    <div class="participants-grid">
+      <div class="participant-card">
+        <div class="participant-icon shopper">&#128100;</div>
+        <h3>Shopper</h3>
+        <p>
+          Registers their identity and financial profile (credit score, limits).
+          Delegates purchasing authority to trusted AI agents with configurable
+          scope, spending limits, and allowed transaction types.
+        </p>
+      </div>
+      <div class="participant-card">
+        <div class="participant-icon merchant">&#127978;</div>
+        <h3>Merchant</h3>
+        <p>
+          Registers their business and the transaction types they support
+          (loans, leases, direct purchases). Verifies agent tokens through
+          the registry before fulfilling orders.
+        </p>
+      </div>
+      <div class="participant-card">
+        <div class="participant-icon agent">&#129302;</div>
+        <h3>AI Agent</h3>
+        <p>
+          Registers as a purchasing agent. Receives delegated tokens from
+          shoppers and uses them to negotiate and complete purchases with
+          merchants on the shopper's behalf.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ─── Architecture Diagram ────────────────────────────────────────────────── -->
+<section>
+  <div class="container">
+    <h2 class="section-title">Architecture</h2>
+    <p class="section-subtitle">
+      How identities, tokens, and transactions flow through the system.
+    </p>
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:900px;">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse"
+            fill="#52100060">
+            <path d="M 0 0 L 10 5 L 0 10 z" />
+          </marker>
+          <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse"
+            fill="#1d4ed8">
+            <path d="M 0 0 L 10 5 L 0 10 z" />
+          </marker>
+          <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse"
+            fill="#16a34a">
+            <path d="M 0 0 L 10 5 L 0 10 z" />
+          </marker>
+          <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse"
+            fill="#7c3aed">
+            <path d="M 0 0 L 10 5 L 0 10 z" />
+          </marker>
+          <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse"
+            fill="#c4430a">
+            <path d="M 0 0 L 10 5 L 0 10 z" />
+          </marker>
+        </defs>
+
+        <!-- Cloudflare Region Box -->
+        <rect x="240" y="30" width="420" height="460" rx="16" fill="none"
+          stroke="#ebd5c1" stroke-width="1.5" stroke-dasharray="8,4" />
+        <text x="450" y="58" text-anchor="middle" fill="#52100099"
+          font-size="12" font-family="'FT Kunst Grotesk', -apple-system, sans-serif" font-weight="600">
+          CLOUDFLARE EDGE
+        </text>
+
+        <!-- Worker Box (widened: 300px, centered at x=450) -->
+        <rect x="300" y="160" width="300" height="100" rx="12" fill="#fffbf5"
+          stroke="#f63" stroke-width="2" />
+        <text x="450" y="195" text-anchor="middle" fill="#c4430a"
+          font-size="14" font-family="'FT Kunst Grotesk', -apple-system, sans-serif" font-weight="700">
+          Registry API
+        </text>
+        <text x="450" y="215" text-anchor="middle" fill="#52100099"
+          font-size="11" font-family="'FT Kunst Grotesk', -apple-system, sans-serif">
+          Cloudflare Worker (Hono)
+        </text>
+        <text x="450" y="235" text-anchor="middle" fill="#52100060"
+          font-size="10" font-family="'Apercu Mono Pro', monospace">
+          /api/register | /api/delegate | /api/verify
+        </text>
+
+        <!-- KV Store Box (widened: 260px, centered at x=450) -->
+        <rect x="320" y="340" width="260" height="80" rx="12" fill="#fffbf5"
+          stroke="#7c3aed" stroke-width="2" />
+        <text x="450" y="372" text-anchor="middle" fill="#7c3aed"
+          font-size="14" font-family="'FT Kunst Grotesk', -apple-system, sans-serif" font-weight="700">
+          KV Store
+        </text>
+        <text x="450" y="395" text-anchor="middle" fill="#52100099"
+          font-size="10" font-family="'Apercu Mono Pro', monospace">
+          shopper: | merchant: | agent: | token:
+        </text>
+
+        <!-- Worker -> KV Arrow -->
+        <line x1="450" y1="260" x2="450" y2="340"
+          stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arrow-purple)" />
+        <!-- Label: offset right with background -->
+        <rect x="462" y="292" width="62" height="16" rx="3" fill="#fffbf5" fill-opacity="0.9" />
+        <text x="466" y="304" fill="#7c3aed" font-size="10"
+          font-family="'FT Kunst Grotesk', -apple-system, sans-serif">read/write</text>
+
+        <!-- Shopper Node -->
+        <rect x="30" y="80" width="160" height="70" rx="10" fill="#fffbf5"
+          stroke="#16a34a" stroke-width="2" />
+        <text x="110" y="110" text-anchor="middle" fill="#16a34a"
+          font-size="13" font-family="'FT Kunst Grotesk', -apple-system, sans-serif" font-weight="700">
+          &#128100; Shopper
+        </text>
+        <text x="110" y="130" text-anchor="middle" fill="#52100099"
+          font-size="10" font-family="'FT Kunst Grotesk', -apple-system, sans-serif">
+          (Alice)
+        </text>
+
+        <!-- Merchant Node -->
+        <rect x="710" y="80" width="160" height="70" rx="10" fill="#fffbf5"
+          stroke="#1d4ed8" stroke-width="2" />
+        <text x="790" y="110" text-anchor="middle" fill="#1d4ed8"
+          font-size="13" font-family="'FT Kunst Grotesk', -apple-system, sans-serif" font-weight="700">
+          &#127978; Merchant
+        </text>
+        <text x="790" y="130" text-anchor="middle" fill="#52100099"
+          font-size="10" font-family="'FT Kunst Grotesk', -apple-system, sans-serif">
+          (FurnitureCo)
+        </text>
+
+        <!-- Agent Node -->
+        <rect x="30" y="300" width="160" height="70" rx="10" fill="#fffbf5"
+          stroke="#7c3aed" stroke-width="2" />
+        <text x="110" y="330" text-anchor="middle" fill="#7c3aed"
+          font-size="13" font-family="'FT Kunst Grotesk', -apple-system, sans-serif" font-weight="700">
+          &#129302; AI Agent
+        </text>
+        <text x="110" y="350" text-anchor="middle" fill="#52100099"
+          font-size="10" font-family="'FT Kunst Grotesk', -apple-system, sans-serif">
+          (ShopBot)
+        </text>
+
+        <!-- Shopper -> Worker (register) — arrow endpoints adjusted for wider box -->
+        <path d="M 190 105 Q 245 105 300 175" fill="none"
+          stroke="#16a34a" stroke-width="1.5" marker-end="url(#arrow-green)" />
+        <!-- Label: horizontal, offset above the curve with background -->
+        <rect x="207" y="100" width="68" height="16" rx="3" fill="#fffbf5" fill-opacity="0.9" />
+        <text x="211" y="112" fill="#16a34a" font-size="10"
+          font-family="'FT Kunst Grotesk', -apple-system, sans-serif" font-weight="500">
+          1. Register
+        </text>
+
+        <!-- Merchant -> Worker (register) — arrow endpoints adjusted for wider box -->
+        <path d="M 710 105 Q 655 105 600 175" fill="none"
+          stroke="#1d4ed8" stroke-width="1.5" marker-end="url(#arrow-blue)" />
+        <!-- Label: horizontal, offset above the curve with background -->
+        <rect x="627" y="100" width="70" height="16" rx="3" fill="#fffbf5" fill-opacity="0.9" />
+        <text x="631" y="112" fill="#1d4ed8" font-size="10"
+          font-family="'FT Kunst Grotesk', -apple-system, sans-serif" font-weight="500">
+          2. Register
+        </text>
+
+        <!-- Shopper -> Agent (delegate) -->
+        <line x1="110" y1="150" x2="110" y2="300"
+          stroke="#c4430a" stroke-width="1.5" marker-end="url(#arrow-orange)" />
+        <!-- Label: offset right of the vertical arrow with background -->
+        <rect x="118" y="218" width="70" height="16" rx="3" fill="#fffbf5" fill-opacity="0.9" />
+        <text x="122" y="230" fill="#c4430a" font-size="10"
+          font-family="'FT Kunst Grotesk', -apple-system, sans-serif" font-weight="500">
+          3. Delegate
+        </text>
+
+        <!-- Agent -> Worker (present token) — arrow endpoints adjusted for wider box -->
+        <path d="M 190 325 Q 245 305 300 225" fill="none"
+          stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arrow-purple)" />
+        <!-- Label: horizontal, offset below the curve with background -->
+        <rect x="195" y="280" width="90" height="16" rx="3" fill="#fffbf5" fill-opacity="0.9" />
+        <text x="199" y="292" fill="#7c3aed" font-size="10"
+          font-family="'FT Kunst Grotesk', -apple-system, sans-serif" font-weight="500">
+          4. Present token
+        </text>
+
+        <!-- Worker -> Merchant (verified purchase) — arrow endpoints adjusted for wider box -->
+        <path d="M 600 195 Q 655 155 710 120" fill="none"
+          stroke="#c4430a" stroke-width="1.5" marker-end="url(#arrow-orange)" />
+        <!-- Label: horizontal, offset below the curve with background -->
+        <rect x="613" y="164" width="98" height="16" rx="3" fill="#fffbf5" fill-opacity="0.9" />
+        <text x="617" y="176" fill="#c4430a" font-size="10"
+          font-family="'FT Kunst Grotesk', -apple-system, sans-serif" font-weight="500">
+          5. Verified purchase
+        </text>
+
+        <!-- Legend -->
+        <rect x="690" y="380" width="190" height="110" rx="8" fill="#fffbf5"
+          stroke="#ebd5c1" stroke-width="1" />
+        <text x="700" y="400" fill="#52100099" font-size="10"
+          font-family="'FT Kunst Grotesk', -apple-system, sans-serif" font-weight="600">LEGEND</text>
+        <line x1="700" y1="415" x2="730" y2="415" stroke="#16a34a" stroke-width="2" />
+        <text x="735" y="419" fill="#52100099" font-size="10"
+          font-family="'FT Kunst Grotesk', -apple-system, sans-serif">Register identity</text>
+        <line x1="700" y1="435" x2="730" y2="435" stroke="#c4430a" stroke-width="2" />
+        <text x="735" y="439" fill="#52100099" font-size="10"
+          font-family="'FT Kunst Grotesk', -apple-system, sans-serif">Delegate / Transact</text>
+        <line x1="700" y1="455" x2="730" y2="455" stroke="#7c3aed" stroke-width="2" />
+        <text x="735" y="459" fill="#52100099" font-size="10"
+          font-family="'FT Kunst Grotesk', -apple-system, sans-serif">Token / KV storage</text>
+        <line x1="700" y1="475" x2="730" y2="475" stroke="#1d4ed8" stroke-width="2" />
+        <text x="735" y="479" fill="#52100099" font-size="10"
+          font-family="'FT Kunst Grotesk', -apple-system, sans-serif">Verify / API call</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ─── Scenario ────────────────────────────────────────────────────────────── -->
+<section>
+  <div class="container">
+    <h2 class="section-title">Example: Agent-Mediated Furniture Lease</h2>
+    <p class="section-subtitle">
+      Alice wants to lease a $2,000 couch from FurnitureCo. She delegates
+      her AI agent ShopBot to handle the purchase on her behalf.
+    </p>
+    <div class="scenario-steps">
+      <div class="scenario-step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h4>Alice Registers</h4>
+          <p>Alice registers with the commerce registry, providing her identity and financial profile (credit score: 750, credit limit: $10,000).</p>
+        </div>
+      </div>
+      <div class="scenario-step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h4>FurnitureCo Registers</h4>
+          <p>FurnitureCo registers as a merchant that accepts both loans and leases for furniture purchases.</p>
+        </div>
+      </div>
+      <div class="scenario-step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h4>ShopBot Registers</h4>
+          <p>ShopBot AI registers as a purchasing agent with capabilities for negotiation and purchase execution.</p>
+        </div>
+      </div>
+      <div class="scenario-step">
+        <div class="step-number">4</div>
+        <div class="step-content">
+          <h4>Alice Delegates to ShopBot</h4>
+          <p>Alice delegates purchasing authority to ShopBot: up to $5,000, allowed for loans and leases. A cryptographic delegation token is generated and stored.</p>
+        </div>
+      </div>
+      <div class="scenario-step">
+        <div class="step-number">5</div>
+        <div class="step-content">
+          <h4>ShopBot Initiates Purchase</h4>
+          <p>ShopBot finds a couch at FurnitureCo for $2,000 and initiates a 12-month lease. The registry verifies the token, checks delegation scope, confirms credit eligibility, and creates the transaction.</p>
+        </div>
+      </div>
+      <div class="scenario-step">
+        <div class="step-number">6</div>
+        <div class="step-content">
+          <h4>FurnitureCo Verifies</h4>
+          <p>FurnitureCo independently verifies ShopBot's token against the registry, confirming Alice's identity and credit eligibility before approving the lease.</p>
+        </div>
+      </div>
+      <div class="scenario-step">
+        <div class="step-number">7</div>
+        <div class="step-content">
+          <h4>Transaction Completes</h4>
+          <p>The lease agreement is finalized: $2,000 over 12 months at $166.67/month. All parties have a verified record in the registry.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ─── Interactive Demo ────────────────────────────────────────────────────── -->
+<section class="demo-section" id="demo">
+  <div class="container">
+    <h2 class="section-title">Interactive Demo</h2>
+    <p class="section-subtitle">
+      Walk through the full scenario with live API calls. Watch the request lifecycle
+      traced across Cloudflare services in real time.
+    </p>
+
+    <div style="margin-bottom: 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <button class="btn-run" id="btn-run-all" onclick="runAllSteps()">Run All Steps</button>
+      <button class="btn-rerun" id="btn-run-3x" onclick="run3xComparison()" style="display:none;">Run 3x Comparison</button>
+      <button class="btn-reset" onclick="resetDemo()">New Session</button>
+      <span class="session-badge" id="session-badge">session: <code id="session-id-label"></code></span>
+      <span style="font-size:12px;color:var(--text-dim);margin-left:4px;">
+        Each session uses unique KV keys to guarantee cold reads on first run.
+      </span>
+    </div>
+
+    <div class="demo-layout">
+      <!-- Left: Steps -->
+      <div class="demo-steps-panel">
+        <div class="panel-header">
+          <div class="dot green"></div>
+          API Steps
+        </div>
+        <div class="demo-steps-list" id="steps-list"></div>
+      </div>
+
+      <!-- Right: Trace -->
+      <div class="demo-trace-panel">
+        <div class="panel-header">
+          <div class="dot blue"></div>
+          Request Lifecycle Trace
+          <span class="pop-badge" id="pop-badge">
+            <span class="pop-dot"></span>
+            <span id="pop-label">Waiting...</span>
+          </span>
+        </div>
+        <div class="trace-timeline" id="trace-timeline">
+          <div class="trace-empty" id="trace-empty">
+            Run a step to see the request lifecycle traced across<br>
+            Edge &rarr; Worker &rarr; KV Store
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ─── Technical Details ───────────────────────────────────────────────────── -->
+<section>
+  <div class="container">
+    <h2 class="section-title">Implementation Details</h2>
+    <p class="section-subtitle">
+      Built on Cloudflare Workers with KV for globally distributed identity storage.
+    </p>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <h3>KV Schema</h3>
+        <table>
+          <thead><tr><th>Key Pattern</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>shopper:{id}</td><td>Identity + credit profile</td></tr>
+            <tr><td>merchant:{id}</td><td>Business + capabilities</td></tr>
+            <tr><td>agent:{id}</td><td>Agent identity</td></tr>
+            <tr><td>delegation:{a}:{s}</td><td>Delegation record</td></tr>
+            <tr><td>token:{hash}</td><td>Token fast-lookup</td></tr>
+            <tr><td>transaction:{id}</td><td>Transaction state</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tech-card">
+        <h3>API Endpoints</h3>
+        <table>
+          <thead><tr><th>Endpoint</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>POST /api/register/shopper</td><td>Register shopper</td></tr>
+            <tr><td>POST /api/register/merchant</td><td>Register merchant</td></tr>
+            <tr><td>POST /api/register/agent</td><td>Register agent</td></tr>
+            <tr><td>POST /api/delegate</td><td>Delegate authority</td></tr>
+            <tr><td>POST /api/verify</td><td>Verify token</td></tr>
+            <tr><td>POST /api/transaction/*</td><td>Manage transactions</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tech-card">
+        <h3>Technology Stack</h3>
+        <table>
+          <thead><tr><th>Component</th><th>Technology</th></tr></thead>
+          <tbody>
+            <tr><td>Runtime</td><td>Cloudflare Workers</td></tr>
+            <tr><td>Framework</td><td>Hono</td></tr>
+            <tr><td>Storage</td><td>Workers KV</td></tr>
+            <tr><td>Auth Tokens</td><td>Web Crypto API (SHA-256)</td></tr>
+            <tr><td>Config</td><td>Wrangler (jsonc)</td></tr>
+            <tr><td>Observability</td><td>Workers Observability</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tech-card">
+        <h3>Security Model</h3>
+        <table>
+          <thead><tr><th>Feature</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>Token Generation</td><td>SHA-256 hashed UUIDs</td></tr>
+            <tr><td>Scope Control</td><td>Per-delegation limits</td></tr>
+            <tr><td>Expiry</td><td>24h token TTL (KV native)</td></tr>
+            <tr><td>Amount Limits</td><td>Configurable per delegation</td></tr>
+            <tr><td>Type Restrictions</td><td>loan, lease, purchase</td></tr>
+            <tr><td>Credit Check</td><td>Against shopper profile</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Footer ──────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    Agentic Commerce Registry Demo &mdash; Powered by Cloudflare Workers + KV
+  </div>
+</footer>
+
+<!-- ─── Worker Code Modal ──────────────────────────────────────────────────── -->
+<div class="code-modal-overlay" id="code-modal-overlay" onclick="closeCodeModal()">
+  <div class="code-modal" onclick="event.stopPropagation()">
+    <div class="code-modal-header">
+      <div>
+        <span class="modal-title" id="code-modal-title"></span>
+        <span class="modal-subtitle" id="code-modal-subtitle"></span>
+      </div>
+      <button class="btn-modal-close" onclick="closeCodeModal()" title="Close (Esc)">&times;</button>
+    </div>
+    <div class="code-modal-body">
+      <pre class="code-block" id="code-modal-content"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Demo Script ─────────────────────────────────────────────────────────── -->
+<script>
+// ─── Session & Randomization ─────────────────────────────────────────────────
+
+function generateSessionId() {
+  return crypto.randomUUID().slice(0, 8);
+}
+
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomChoice(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function roundTo(value, step) {
+  return Math.round(value / step) * step;
+}
+
+const FURNITURE_ITEMS = [
+  'Modern Sectional Sofa - Cloud Series',
+  'Standing Desk - Oak Edition',
+  'Ergonomic Office Chair - Pro',
+  'Dining Table Set - Walnut',
+  'Queen Bed Frame - Minimalist',
+  'Bookshelf Unit - Industrial',
+  'Leather Recliner - Executive',
+  'Coffee Table - Mid-Century',
+];
+
+// ─── Demo Configuration ──────────────────────────────────────────────────────
+
+function buildDemoSteps(sid) {
+  const shopperId = `alice-${sid}`;
+  const merchantId = `furnco-${sid}`;
+  const agentId = `shopbot-${sid}`;
+
+  const creditScore = randomInt(650, 850);
+  const creditLimit = roundTo(randomInt(5000, 25000), 1000);
+  const maxAmount = roundTo(randomInt(1000, 5000), 500);
+  const amount = roundTo(randomInt(500, maxAmount), 100);
+  const termMonths = randomChoice([6, 12, 18, 24]);
+  const item = randomChoice(FURNITURE_ITEMS);
+  const monthly = (amount / termMonths).toFixed(2);
+
+  return [
+    {
+      id: 'register-shopper',
+      title: 'Register Shopper (Alice)',
+      method: 'POST',
+      endpoint: '/api/register/shopper',
+      body: {
+        id: shopperId,
+        name: 'Alice Johnson',
+        email: 'alice@example.com',
+        creditScore,
+        creditLimit
+      },
+      description: `Alice registers her identity and credit profile (score: ${creditScore}, limit: $${creditLimit.toLocaleString()}).`
+    },
+    {
+      id: 'register-merchant',
+      title: 'Register Merchant (FurnitureCo)',
+      method: 'POST',
+      endpoint: '/api/register/merchant',
+      body: {
+        id: merchantId,
+        name: 'FurnitureCo',
+        businessType: 'furniture_retail',
+        acceptsLoans: true,
+        acceptsLeases: true
+      },
+      description: 'FurnitureCo registers as a merchant that accepts both loans and leases.'
+    },
+    {
+      id: 'register-agent',
+      title: 'Register Agent (ShopBot)',
+      method: 'POST',
+      endpoint: '/api/register/agent',
+      body: {
+        id: agentId,
+        name: 'ShopBot AI',
+        capabilities: ['purchase', 'negotiate', 'compare']
+      },
+      description: 'ShopBot AI registers as a purchasing agent capable of negotiation and purchase.'
+    },
+    {
+      id: 'delegate',
+      title: 'Delegate Authority to ShopBot',
+      method: 'POST',
+      endpoint: '/api/delegate',
+      body: {
+        shopperId,
+        agentId,
+        scope: ['purchase', 'negotiate'],
+        maxAmount,
+        allowedTransactionTypes: ['loan', 'lease']
+      },
+      description: `Alice delegates purchasing authority to ShopBot: up to $${maxAmount.toLocaleString()} for loans and leases.`
+    },
+    {
+      id: 'initiate-transaction',
+      title: 'Agent Initiates Lease Purchase',
+      method: 'POST',
+      endpoint: '/api/transaction/initiate',
+      body: null,
+      bodyTemplate: (token) => ({
+        token: token,
+        merchantId,
+        type: 'lease',
+        itemDescription: item,
+        amount,
+        termMonths
+      }),
+      description: `ShopBot initiates a ${termMonths}-month lease for a $${amount.toLocaleString()} ${item.split(' - ')[0]} at FurnitureCo.`
+    },
+    {
+      id: 'verify-token',
+      title: 'Merchant Verifies Token',
+      method: 'POST',
+      endpoint: '/api/verify',
+      body: null,
+      bodyTemplate: (token) => ({ token: token }),
+      description: 'FurnitureCo verifies ShopBot\'s delegation token to confirm Alice\'s identity and credit.'
+    },
+    {
+      id: 'complete-transaction',
+      title: 'Complete Transaction',
+      method: 'POST',
+      endpoint: '/api/transaction/complete',
+      body: null,
+      bodyTemplate: (txId) => ({ transactionId: txId }),
+      description: `The lease agreement is finalized: $${amount.toLocaleString()} over ${termMonths} months at $${monthly}/month.`
+    }
+  ];
+}
+
+let sessionId = generateSessionId();
+let DEMO_STEPS = buildDemoSteps(sessionId);
+
+// ─── State ───────────────────────────────────────────────────────────────────
+
+let demoState = {
+  currentStep: 0,
+  responses: {},
+  delegationToken: null,
+  transactionId: null,
+  // Run history: runHistory[stepIdx] = [{ runNumber, totalTime, traces, timestamp, colo }]
+  runHistory: {},
+  // Guards against concurrent runs (double-clicks, overlapping rerun+runAll)
+  stepInFlight: new Set(),
+  // Last observed Cloudflare POP code
+  colo: null,
+};
+
+// ─── Worker Code Snippets ────────────────────────────────────────────────────
+// Extracted from src/index.ts — the Cloudflare Worker handler for each endpoint.
+// Comments use tags to indicate what each line relates to:
+//   [Hono]    — Hono web framework (routing, request parsing, responses)
+//   [Workers] — Cloudflare Workers runtime (crypto, bindings, cf object)
+//   [Workers KV] — Workers KV storage operations (get, put, TTL, key design)
+//   [Agentic Commerce Registry] — Application / domain logic
+
+const WORKER_CODE = {
+  'register-shopper': {
+    title: 'Register Shopper',
+    endpoint: 'POST /api/register/shopper',
+    code: `// [Hono] app.post() defines a POST route handler. The callback receives a
+// Context object \`c\` with access to the request (c.req) and bindings (c.env).
+app.post("/api/register/shopper", async (c) => {
+  // [Workers] Access the KV binding via c.env.REGISTRY — this is the KV namespace
+  // configured in wrangler.jsonc. TracedKV wraps it with timing instrumentation.
+  const tkv = new TracedKV(c.env.REGISTRY);
+  const start = Date.now();
+
+  // [Hono] Parse the incoming JSON request body.
+  const body = await c.req.json();
+  tkv.addWorkerTrace("parse_request", Date.now() - start);
+
+  // [Agentic Commerce Registry] Validate required fields for shopper registration.
+  const err = validateBody(body, [
+    { name: "name", type: "string", required: true },
+    { name: "email", type: "string", required: true },
+    { name: "creditScore", type: "number" },
+    { name: "creditLimit", type: "number" },
+  ]);
+  if (err) return c.json({ success: false, error: err, _colo: getColo(c), _trace: tkv.getTraces() }, 400);
+
+  // [Agentic Commerce Registry] Build the shopper identity record.
+  const genStart = Date.now();
+  // [Workers] crypto.randomUUID() generates a unique ID — part of the Web Crypto API.
+  const id = body.id || \`shopper-\${crypto.randomUUID().slice(0, 8)}\`;
+  const shopper: Shopper = {
+    id,
+    name: body.name,
+    email: body.email,
+    creditScore: body.creditScore ?? 750,
+    creditLimit: body.creditLimit ?? 10000,
+    registeredAt: new Date().toISOString(),
+  };
+  tkv.addWorkerTrace("build_identity", Date.now() - genStart);
+
+  // [Workers KV] Persist the shopper to KV. The key "shopper:{id}" is a namespaced
+  // pattern — KV is a flat key-value store, so prefixes act as logical "tables".
+  await tkv.put(\`shopper:\${id}\`, shopper);
+
+  // [Hono] Return the created shopper as a JSON response.
+  return c.json({
+    success: true,
+    data: shopper,
+    _colo: getColo(c),
+    _trace: tkv.getTraces(),
+  });
+});`
+  },
+  'register-merchant': {
+    title: 'Register Merchant',
+    endpoint: 'POST /api/register/merchant',
+    code: `app.post("/api/register/merchant", async (c) => {
+  // [Workers] Access the KV binding configured in wrangler.jsonc.
+  const tkv = new TracedKV(c.env.REGISTRY);
+  const start = Date.now();
+
+  // [Hono] Parse the incoming JSON request body.
+  const body = await c.req.json();
+  tkv.addWorkerTrace("parse_request", Date.now() - start);
+
+  // [Agentic Commerce Registry] Validate fields for merchant registration.
+  const err = validateBody(body, [
+    { name: "name", type: "string", required: true },
+    { name: "businessType", type: "string" },
+    { name: "acceptsLoans", type: "boolean" },
+    { name: "acceptsLeases", type: "boolean" },
+  ]);
+  if (err) return c.json({ success: false, error: err, _colo: getColo(c), _trace: tkv.getTraces() }, 400);
+
+  // [Agentic Commerce Registry] Build the merchant identity with business capabilities.
+  const genStart = Date.now();
+  const id = body.id || \`merchant-\${crypto.randomUUID().slice(0, 8)}\`;
+  const merchant: Merchant = {
+    id,
+    name: body.name,
+    businessType: body.businessType ?? "retail",
+    acceptsLoans: body.acceptsLoans ?? true,
+    acceptsLeases: body.acceptsLeases ?? true,
+    registeredAt: new Date().toISOString(),
+  };
+  tkv.addWorkerTrace("build_identity", Date.now() - genStart);
+
+  // [Workers KV] Persist the merchant to KV under the "merchant:" prefix.
+  await tkv.put(\`merchant:\${id}\`, merchant);
+
+  return c.json({
+    success: true,
+    data: merchant,
+    _colo: getColo(c),
+    _trace: tkv.getTraces(),
+  });
+});`
+  },
+  'register-agent': {
+    title: 'Register Agent',
+    endpoint: 'POST /api/register/agent',
+    code: `app.post("/api/register/agent", async (c) => {
+  // [Workers] Access the KV binding configured in wrangler.jsonc.
+  const tkv = new TracedKV(c.env.REGISTRY);
+  const start = Date.now();
+
+  // [Hono] Parse the incoming JSON request body.
+  const body = await c.req.json();
+  tkv.addWorkerTrace("parse_request", Date.now() - start);
+
+  // [Agentic Commerce Registry] Validate fields for AI agent registration.
+  const err = validateBody(body, [
+    { name: "name", type: "string", required: true },
+    { name: "capabilities", type: "array" },
+  ]);
+  if (err) return c.json({ success: false, error: err, _colo: getColo(c), _trace: tkv.getTraces() }, 400);
+
+  // [Agentic Commerce Registry] Build the agent identity with its capabilities.
+  const genStart = Date.now();
+  const id = body.id || \`agent-\${crypto.randomUUID().slice(0, 8)}\`;
+  const agent: Agent = {
+    id,
+    name: body.name,
+    capabilities: body.capabilities ?? ["purchase", "negotiate"],
+    registeredAt: new Date().toISOString(),
+  };
+  tkv.addWorkerTrace("build_identity", Date.now() - genStart);
+
+  // [Workers KV] Persist the agent to KV under the "agent:" prefix.
+  await tkv.put(\`agent:\${id}\`, agent);
+
+  return c.json({
+    success: true,
+    data: agent,
+    _colo: getColo(c),
+    _trace: tkv.getTraces(),
+  });
+});`
+  },
+  'delegate': {
+    title: 'Delegate Authority',
+    endpoint: 'POST /api/delegate',
+    code: `// [Agentic Commerce Registry] This is the core trust mechanism: a shopper grants
+// an AI agent limited, scoped authority to act on their behalf.
+app.post("/api/delegate", async (c) => {
+  const tkv = new TracedKV(c.env.REGISTRY);
+  const start = Date.now();
+
+  const body = await c.req.json();
+  tkv.addWorkerTrace("parse_request", Date.now() - start);
+
+  // [Agentic Commerce Registry] Validate delegation parameters: who delegates, to whom, and with what limits.
+  const err = validateBody(body, [
+    { name: "shopperId", type: "string", required: true },
+    { name: "agentId", type: "string", required: true },
+    { name: "maxAmount", type: "number" },
+    { name: "scope", type: "array" },
+    { name: "allowedTransactionTypes", type: "array" },
+  ]);
+  if (err) return c.json({ success: false, error: err, _colo: getColo(c), _trace: tkv.getTraces() }, 400);
+
+  // [Workers KV] Look up the shopper from KV to verify they exist before delegating.
+  const shopper = await tkv.get<Shopper>(\`shopper:\${body.shopperId}\`);
+  if (!shopper) {
+    return c.json({ success: false, error: "Shopper not found", _colo: getColo(c), _trace: tkv.getTraces() }, 404);
+  }
+
+  // [Workers KV] Look up the agent from KV to verify they are registered.
+  const agent = await tkv.get<Agent>(\`agent:\${body.agentId}\`);
+  if (!agent) {
+    return c.json({ success: false, error: "Agent not found", _colo: getColo(c), _trace: tkv.getTraces() }, 404);
+  }
+
+  // [Workers] Generate a cryptographic delegation token using the Web Crypto API (SHA-256).
+  const tokenStart = Date.now();
+  const token = await generateToken();
+  tkv.addWorkerTrace("generate_delegation_token", Date.now() - tokenStart);
+
+  // [Agentic Commerce Registry] Build the delegation record: scope, spending limit,
+  // allowed transaction types, and a 24-hour expiry window.
+  const delegation: Delegation = {
+    agentId: body.agentId,
+    shopperId: body.shopperId,
+    scope: body.scope ?? ["purchase"],
+    maxAmount: body.maxAmount ?? 5000,
+    allowedTransactionTypes: body.allowedTransactionTypes ?? ["loan", "lease"],
+    token,
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+
+  // [Workers KV] Store the delegation record with expirationTtl — KV will automatically
+  // delete this key after 86400 seconds (24 hours). No cron job or cleanup needed.
+  await tkv.put(\`delegation:\${body.agentId}:\${body.shopperId}\`, delegation, { expirationTtl: 86400 });
+
+  // [Workers KV] Store a separate token-lookup entry for fast O(1) verification.
+  // Also uses KV's native TTL so expired tokens are automatically cleaned up.
+  await tkv.put(\`token:\${token}\`, {
+    agentId: body.agentId,
+    shopperId: body.shopperId,
+    scope: delegation.scope,
+    maxAmount: delegation.maxAmount,
+    allowedTransactionTypes: delegation.allowedTransactionTypes,
+    expiresAt: delegation.expiresAt,
+  }, { expirationTtl: 86400 });
+
+  return c.json({
+    success: true,
+    data: {
+      delegation: {
+        agentId: delegation.agentId,
+        agentName: agent.name,
+        shopperId: delegation.shopperId,
+        shopperName: shopper.name,
+        scope: delegation.scope,
+        maxAmount: delegation.maxAmount,
+        allowedTransactionTypes: delegation.allowedTransactionTypes,
+        token: delegation.token,
+        expiresAt: delegation.expiresAt,
+      },
+    },
+    _colo: getColo(c),
+    _trace: tkv.getTraces(),
+  });
+});`
+  },
+  'initiate-transaction': {
+    title: 'Initiate Transaction',
+    endpoint: 'POST /api/transaction/initiate',
+    code: `// [Agentic Commerce Registry] The agent initiates a purchase on behalf of the
+// shopper. This handler enforces every delegation constraint before creating the transaction.
+app.post("/api/transaction/initiate", async (c) => {
+  const tkv = new TracedKV(c.env.REGISTRY);
+  const start = Date.now();
+
+  const body = await c.req.json();
+  tkv.addWorkerTrace("parse_request", Date.now() - start);
+
+  const err = validateBody(body, [
+    { name: "token", type: "string", required: true },
+    { name: "merchantId", type: "string", required: true },
+    { name: "amount", type: "number", required: true },
+    { name: "type", type: "string" },
+    { name: "itemDescription", type: "string" },
+    { name: "termMonths", type: "number" },
+  ]);
+  if (err) return c.json({ success: false, error: err, _colo: getColo(c), _trace: tkv.getTraces() }, 400);
+
+  // [Workers KV] Verify the delegation token by looking it up in KV.
+  const tokenData = await tkv.get<{
+    agentId: string;
+    shopperId: string;
+    scope: string[];
+    maxAmount: number;
+    allowedTransactionTypes: string[];
+    expiresAt: string;
+  }>(\`token:\${body.token}\`);
+
+  if (!tokenData) {
+    tkv.addWorkerTrace("token_validation", 0, "error");
+    return c.json({ success: false, error: "Invalid token", _colo: getColo(c), _trace: tkv.getTraces() }, 401);
+  }
+
+  // [Agentic Commerce Registry] Check token expiry.
+  const validStart = Date.now();
+  if (new Date(tokenData.expiresAt) < new Date()) {
+    tkv.addWorkerTrace("check_token_expiry", Date.now() - validStart, "error");
+    return c.json({ success: false, error: "Token expired", _colo: getColo(c), _trace: tkv.getTraces() }, 401);
+  }
+  tkv.addWorkerTrace("check_token_expiry", Date.now() - validStart);
+
+  // [Agentic Commerce Registry] Enforce delegation constraint: transaction type must be allowed.
+  const typeCheckStart = Date.now();
+  const txType = body.type ?? "lease";
+  if (!tokenData.allowedTransactionTypes.includes(txType)) {
+    tkv.addWorkerTrace("check_transaction_type", Date.now() - typeCheckStart, "error");
+    return c.json({
+      success: false,
+      error: \`Transaction type "\${txType}" not permitted by delegation\`,
+      _colo: getColo(c),
+      _trace: tkv.getTraces(),
+    }, 403);
+  }
+  tkv.addWorkerTrace("check_transaction_type", Date.now() - typeCheckStart);
+
+  // [Agentic Commerce Registry] Enforce delegation constraint: amount must be within the spending limit.
+  const amountCheckStart = Date.now();
+  if (body.amount > tokenData.maxAmount) {
+    tkv.addWorkerTrace("check_amount_limit", Date.now() - amountCheckStart, "error");
+    return c.json({
+      success: false,
+      error: \`Amount $\${body.amount} exceeds delegation limit of $\${tokenData.maxAmount}\`,
+      _colo: getColo(c),
+      _trace: tkv.getTraces(),
+    }, 403);
+  }
+  tkv.addWorkerTrace("check_amount_limit", Date.now() - amountCheckStart);
+
+  // [Workers KV] Look up the merchant from KV to verify existence and capabilities.
+  const merchant = await tkv.get<Merchant>(\`merchant:\${body.merchantId}\`);
+  if (!merchant) {
+    return c.json({ success: false, error: "Merchant not found", _colo: getColo(c), _trace: tkv.getTraces() }, 404);
+  }
+
+  // [Agentic Commerce Registry] Verify the merchant supports this transaction type.
+  const merchantCheckStart = Date.now();
+  if (txType === "loan" && !merchant.acceptsLoans) {
+    tkv.addWorkerTrace("check_merchant_capabilities", Date.now() - merchantCheckStart, "error");
+    return c.json({
+      success: false,
+      error: "Merchant does not accept loans",
+      _colo: getColo(c),
+      _trace: tkv.getTraces(),
+    }, 400);
+  }
+  if (txType === "lease" && !merchant.acceptsLeases) {
+    tkv.addWorkerTrace("check_merchant_capabilities", Date.now() - merchantCheckStart, "error");
+    return c.json({
+      success: false,
+      error: "Merchant does not accept leases",
+      _colo: getColo(c),
+      _trace: tkv.getTraces(),
+    }, 400);
+  }
+  tkv.addWorkerTrace("check_merchant_capabilities", Date.now() - merchantCheckStart);
+
+  // [Workers KV] Look up the shopper from KV for the credit check.
+  const shopper = await tkv.get<Shopper>(\`shopper:\${tokenData.shopperId}\`);
+
+  // [Agentic Commerce Registry] Run a credit check — ensure amount is within the shopper's credit limit.
+  const creditCheckStart = Date.now();
+  if (shopper && body.amount > shopper.creditLimit) {
+    tkv.addWorkerTrace("credit_check", Date.now() - creditCheckStart, "error");
+    return c.json({
+      success: false,
+      error: \`Amount exceeds shopper credit limit of $\${shopper.creditLimit}\`,
+      _colo: getColo(c),
+      _trace: tkv.getTraces(),
+    }, 403);
+  }
+  tkv.addWorkerTrace("credit_check", Date.now() - creditCheckStart);
+
+  // [Agentic Commerce Registry] All checks passed — create the transaction record.
+  const txId = \`tx-\${crypto.randomUUID().slice(0, 8)}\`;
+  const termMonths = body.termMonths ?? 12;
+  const transaction: Transaction = {
+    id: txId,
+    agentId: tokenData.agentId,
+    shopperId: tokenData.shopperId,
+    merchantId: body.merchantId,
+    type: txType,
+    itemDescription: body.itemDescription ?? "Item",
+    amount: body.amount,
+    termMonths,
+    monthlyPayment: Math.round((body.amount / termMonths) * 100) / 100,
+    status: "initiated",
+    createdAt: new Date().toISOString(),
+  };
+
+  // [Workers KV] Persist the transaction to KV.
+  await tkv.put(\`transaction:\${txId}\`, transaction);
+
+  return c.json({
+    success: true,
+    data: {
+      transaction,
+      shopperName: shopper?.name,
+      merchantName: merchant.name,
+    },
+    _colo: getColo(c),
+    _trace: tkv.getTraces(),
+  });
+});`
+  },
+  'verify-token': {
+    title: 'Verify Token',
+    endpoint: 'POST /api/verify',
+    code: `// [Agentic Commerce Registry] A merchant calls this to verify that an agent's
+// delegation token is valid and to learn the shopper's identity and credit profile.
+app.post("/api/verify", async (c) => {
+  const tkv = new TracedKV(c.env.REGISTRY);
+  const start = Date.now();
+
+  const body = await c.req.json();
+  tkv.addWorkerTrace("parse_request", Date.now() - start);
+
+  const err = validateBody(body, [
+    { name: "token", type: "string", required: true },
+  ]);
+  if (err) return c.json({ success: false, error: err, _colo: getColo(c), _trace: tkv.getTraces() }, 400);
+
+  // [Workers KV] Look up the delegation token from KV. If the token has expired,
+  // KV's native TTL will have already deleted it, so this returns null.
+  const tokenData = await tkv.get<{
+    agentId: string;
+    shopperId: string;
+    scope: string[];
+    maxAmount: number;
+    allowedTransactionTypes: string[];
+    expiresAt: string;
+  }>(\`token:\${body.token}\`);
+
+  if (!tokenData) {
+    tkv.addWorkerTrace("token_validation", 0, "error");
+    return c.json({
+      success: false,
+      error: "Token not found or invalid",
+      verified: false,
+      _colo: getColo(c),
+      _trace: tkv.getTraces(),
+    }, 401);
+  }
+
+  // [Agentic Commerce Registry] Double-check expiry in application code as a safety net
+  // (KV TTL is eventually consistent, so there's a small window where expired keys may linger).
+  const validStart = Date.now();
+  const isExpired = new Date(tokenData.expiresAt) < new Date();
+  tkv.addWorkerTrace("check_token_expiry", Date.now() - validStart);
+
+  if (isExpired) {
+    return c.json({
+      success: false,
+      error: "Token has expired",
+      verified: false,
+      _colo: getColo(c),
+      _trace: tkv.getTraces(),
+    }, 401);
+  }
+
+  // [Workers KV] Parallel KV reads — fetch delegation details and shopper credit
+  // info concurrently. Promise.all makes both KV lookups happen at the same time.
+  const [delegation, shopper] = await Promise.all([
+    tkv.get<Delegation>(\`delegation:\${tokenData.agentId}:\${tokenData.shopperId}\`),
+    tkv.get<Shopper>(\`shopper:\${tokenData.shopperId}\`),
+  ]);
+
+  const compileStart = Date.now();
+  tkv.addWorkerTrace("compile_verification_result", Date.now() - compileStart);
+
+  // [Agentic Commerce Registry] Return the verified identity, credit profile,
+  // and delegation scope so the merchant knows what the agent is authorized to do.
+  return c.json({
+    success: true,
+    verified: true,
+    data: {
+      agentId: tokenData.agentId,
+      shopperId: tokenData.shopperId,
+      shopperName: shopper?.name,
+      shopperCreditScore: shopper?.creditScore,
+      shopperCreditLimit: shopper?.creditLimit,
+      scope: tokenData.scope,
+      maxAmount: tokenData.maxAmount,
+      allowedTransactionTypes: tokenData.allowedTransactionTypes,
+      expiresAt: tokenData.expiresAt,
+    },
+    _colo: getColo(c),
+    _trace: tkv.getTraces(),
+  });
+});`
+  },
+  'complete-transaction': {
+    title: 'Complete Transaction',
+    endpoint: 'POST /api/transaction/complete',
+    code: `// [Agentic Commerce Registry] Finalize the transaction — mark it as completed
+// and return a full summary of all parties involved.
+app.post("/api/transaction/complete", async (c) => {
+  const tkv = new TracedKV(c.env.REGISTRY);
+  const start = Date.now();
+
+  const body = await c.req.json();
+  tkv.addWorkerTrace("parse_request", Date.now() - start);
+
+  const err = validateBody(body, [
+    { name: "transactionId", type: "string", required: true },
+  ]);
+  if (err) return c.json({ success: false, error: err, _colo: getColo(c), _trace: tkv.getTraces() }, 400);
+
+  // [Workers KV] Look up the existing transaction from KV.
+  const transaction = await tkv.get<Transaction>(\`transaction:\${body.transactionId}\`);
+  if (!transaction) {
+    return c.json({
+      success: false,
+      error: "Transaction not found",
+      _colo: getColo(c),
+      _trace: tkv.getTraces(),
+    }, 404);
+  }
+
+  // [Agentic Commerce Registry] Mark the transaction as completed with a timestamp.
+  const updateStart = Date.now();
+  transaction.status = "completed";
+  transaction.completedAt = new Date().toISOString();
+  tkv.addWorkerTrace("finalize_agreement", Date.now() - updateStart);
+
+  // [Workers KV] Update the transaction record in KV with the new status.
+  await tkv.put(\`transaction:\${transaction.id}\`, transaction);
+
+  // [Workers KV] Parallel KV reads — fetch all related entities (shopper, merchant,
+  // agent) concurrently to build the transaction summary.
+  const [shopper, merchant, agent] = await Promise.all([
+    tkv.get<Shopper>(\`shopper:\${transaction.shopperId}\`),
+    tkv.get<Merchant>(\`merchant:\${transaction.merchantId}\`),
+    tkv.get<Agent>(\`agent:\${transaction.agentId}\`),
+  ]);
+
+  return c.json({
+    success: true,
+    data: {
+      transaction,
+      summary: {
+        shopper: shopper?.name,
+        merchant: merchant?.name,
+        agent: agent?.name,
+        item: transaction.itemDescription,
+        type: transaction.type,
+        amount: \`$\${transaction.amount}\`,
+        term: \`\${transaction.termMonths} months\`,
+        monthlyPayment: \`$\${transaction.monthlyPayment}\`,
+        status: transaction.status,
+      },
+    },
+    _colo: getColo(c),
+    _trace: tkv.getTraces(),
+  });
+});`
+  },
+};
+
+// ─── TypeScript Syntax Highlighting ──────────────────────────────────────────
+
+function highlightTs(code) {
+  // Escape HTML first
+  let html = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // Step 1: Extract comments into placeholders BEFORE any other highlighting.
+  // This prevents the string regex from corrupting HTML attributes inside
+  // already-inserted <span> tags (e.g. "ts-comment" being matched as a string).
+  const comments = [];
+  html = html.replace(/(\/\/[^\n]*)/g, (match) => {
+    comments.push(match);
+    return `__COMMENT_${comments.length - 1}__`;
+  });
+
+  // Step 2: Highlight non-comment code — safe now because comments are placeholders.
+
+  // Strings (double-quoted)
+  html = html.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="ts-string">$1</span>');
+
+  // Numbers
+  html = html.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="ts-number">$1</span>');
+
+  // TypeScript type annotations (: Type, <Type>)
+  html = html.replace(/:\s*(Shopper|Merchant|Agent|Delegation|Transaction|TracedKV|KVNamespace|Bindings|string|number|boolean|void)\b/g,
+    ': <span class="ts-type">$1</span>');
+  html = html.replace(/&lt;(Shopper|Merchant|Agent|Delegation|Transaction|[A-Z]\w*)&gt;/g,
+    '&lt;<span class="ts-type">$1</span>&gt;');
+
+  // Keywords
+  html = html.replace(/\b(const|let|var|async|await|function|return|if|else|for|of|in|new|throw|try|catch|finally|import|export|default|class|interface|type|extends|implements)\b/g,
+    '<span class="ts-keyword">$1</span>');
+
+  // Boolean/null keywords
+  html = html.replace(/\b(true|false|null|undefined)\b/g, '<span class="ts-keyword">$1</span>');
+
+  // Known function calls
+  html = html.replace(/\b(validateBody|generateToken|getColo|getTraces|addWorkerTrace|toISOString|randomUUID|slice|includes|push|json|put|get|delete|list)\s*\(/g,
+    '<span class="ts-function">$1</span>(');
+
+  // Object property keys
+  html = html.replace(/\b(success|error|data|delegation|transaction|shopper|merchant|agent|token|verified)\s*:/g,
+    '<span class="ts-property">$1</span>:');
+
+  // Step 3: Restore comments from placeholders. Apply tag badges and comment
+  // styling here, so the <span> attributes never exist when the string regex runs.
+  html = html.replace(/__COMMENT_(\d+)__/g, (_, i) => {
+    let c = comments[i];
+    // Replace [Tag] labels with colored badge spans inside the comment text
+    c = c.replace(/\[Workers KV\]/g, '<span class="ts-tag ts-tag-kv">[Workers KV]</span>');
+    c = c.replace(/\[Hono\]/g, '<span class="ts-tag ts-tag-hono">[Hono]</span>');
+    c = c.replace(/\[Workers\]/g, '<span class="ts-tag ts-tag-workers">[Workers]</span>');
+    c = c.replace(/\[Agentic Commerce Registry\]/g, '<span class="ts-tag ts-tag-app">[Agentic Commerce Registry]</span>');
+    return '<span class="ts-comment">' + c + '</span>';
+  });
+
+  return html;
+}
+
+// ─── Code Modal ──────────────────────────────────────────────────────────────
+
+function showWorkerCode(stepId) {
+  const entry = WORKER_CODE[stepId];
+  if (!entry) return;
+
+  document.getElementById('code-modal-title').textContent = entry.title;
+  document.getElementById('code-modal-subtitle').textContent = 'src/index.ts';
+  document.getElementById('code-modal-content').innerHTML = highlightTs(entry.code);
+  document.getElementById('code-modal-overlay').classList.add('visible');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCodeModal() {
+  document.getElementById('code-modal-overlay').classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeCodeModal();
+});
+
+// ─── Initialize UI ───────────────────────────────────────────────────────────
+
+function initDemo() {
+  // Update session badge
+  const sidLabel = document.getElementById('session-id-label');
+  if (sidLabel) sidLabel.textContent = sessionId;
+
+  const list = document.getElementById('steps-list');
+  list.innerHTML = '';
+
+  DEMO_STEPS.forEach((step, idx) => {
+    const item = document.createElement('div');
+    item.className = 'demo-step-item' + (idx === 0 ? ' active expanded' : '');
+    item.id = `step-${idx}`;
+    item.innerHTML = `
+      <div class="demo-step-header" onclick="toggleStep(${idx})">
+        <div class="step-indicator">${idx + 1}</div>
+        <div class="step-title">${step.title}</div>
+        <span class="step-method post">${step.method}</span>
+      </div>
+      <div class="demo-step-body">
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">${step.description}</p>
+        <div class="code-label">Request</div>
+        <div class="request-block-wrapper">
+          <button class="btn-view-code" onclick="showWorkerCode('${step.id}')" title="View the Worker handler code for this endpoint">{ } View Code</button>
+          <div class="code-block" id="request-${idx}">${step.method} ${step.endpoint}
+
+${formatJson(step.body || step.bodyTemplate?.('&lt;from previous step&gt;') || {})}</div>
+        </div>
+        <div id="btn-group-${idx}" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+          <button class="btn-run" id="btn-${idx}" onclick="runStep(${idx})"
+            ${idx > 0 ? 'disabled' : ''}>
+            Run Step ${idx + 1}
+          </button>
+        </div>
+        <div class="response-block" id="response-${idx}">
+          <div class="code-label">Response</div>
+          <div class="code-block" id="response-body-${idx}"></div>
+        </div>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+// ─── Step Toggle ─────────────────────────────────────────────────────────────
+
+function toggleStep(idx) {
+  const item = document.getElementById(`step-${idx}`);
+  item.classList.toggle('expanded');
+}
+
+// ─── Run Step ────────────────────────────────────────────────────────────────
+
+async function runStep(idx) {
+  // Guard: prevent concurrent execution of the same step
+  if (demoState.stepInFlight.has(idx)) return;
+  demoState.stepInFlight.add(idx);
+
+  const step = DEMO_STEPS[idx];
+  const btn = document.getElementById(`btn-${idx}`);
+  const rerunBtn = document.getElementById(`btn-rerun-${idx}`);
+  const item = document.getElementById(`step-${idx}`);
+  const isRerun = item.classList.contains('completed');
+
+  // Disable buttons during run
+  btn.disabled = true;
+  if (rerunBtn) rerunBtn.disabled = true;
+
+  if (!isRerun) {
+    btn.textContent = 'Running...';
+    btn.classList.add('running');
+  } else if (rerunBtn) {
+    rerunBtn.disabled = true;
+    rerunBtn.textContent = 'Running...';
+  }
+
+  // Determine request body
+  let body = step.body;
+  if (!body && step.bodyTemplate) {
+    if (idx === 4) body = step.bodyTemplate(demoState.delegationToken);
+    else if (idx === 5) body = step.bodyTemplate(demoState.delegationToken);
+    else if (idx === 6) body = step.bodyTemplate(demoState.transactionId);
+
+    const reqBlock = document.getElementById(`request-${idx}`);
+    reqBlock.innerHTML = `${step.method} ${step.endpoint}\n\n${formatJson(body)}`;
+  }
+
+  const startTime = performance.now();
+
+  try {
+    const response = await fetch(step.endpoint, {
+      method: step.method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const totalTime = Math.round(performance.now() - startTime);
+    const data = await response.json();
+
+    // Capture Cloudflare POP location
+    if (data._colo) updatePopBadge(data._colo);
+
+    // Show response (always, even on API errors like 4xx)
+    const respBlock = document.getElementById(`response-${idx}`);
+    const respBody = document.getElementById(`response-body-${idx}`);
+    const displayData = { ...data };
+    delete displayData._trace;
+    delete displayData._colo;
+    respBody.innerHTML = formatJson(displayData);
+    respBlock.classList.add('visible');
+
+    // If the API returned an error, show it clearly but don't block progression on reruns
+    if (!response.ok || data.success === false) {
+      const errMsg = data.error || `HTTP ${response.status}`;
+      btn.classList.remove('running');
+      btn.textContent = isRerun ? `Error (${totalTime}ms)` : 'Error - Retry';
+      btn.disabled = isRerun;
+      if (rerunBtn) { rerunBtn.disabled = false; rerunBtn.innerHTML = '&#8635; Rerun'; }
+      // Still add trace if available so errors are visible in the trace panel
+      if (data._trace) {
+        if (!demoState.runHistory[idx]) demoState.runHistory[idx] = [];
+        const runNumber = demoState.runHistory[idx].length + 1;
+        demoState.runHistory[idx].push({ runNumber, totalTime, traces: data._trace, timestamp: Date.now(), colo: data._colo });
+        const previousRun = runNumber > 1 ? demoState.runHistory[idx][runNumber - 2] : null;
+        addTraceGroup(idx, step, data._trace, totalTime, runNumber, previousRun, data._colo);
+      }
+      demoState.stepInFlight.delete(idx);
+      return;
+    }
+
+    // Store state
+    demoState.responses[idx] = data;
+    if (idx === 3 && data.data?.delegation?.token) {
+      demoState.delegationToken = data.data.delegation.token;
+    }
+    if (idx === 4 && data.data?.transaction?.id) {
+      demoState.transactionId = data.data.transaction.id;
+    }
+
+    // Track run history
+    if (!demoState.runHistory[idx]) demoState.runHistory[idx] = [];
+    const runNumber = demoState.runHistory[idx].length + 1;
+    const traces = data._trace || [];
+    demoState.runHistory[idx].push({ runNumber, totalTime, traces, timestamp: Date.now(), colo: data._colo });
+
+    // Update step UI
+    item.classList.remove('active');
+    item.classList.add('completed');
+
+    // Update button states
+    btn.classList.remove('running');
+    btn.textContent = `Done (${totalTime}ms)`;
+    btn.disabled = true;
+
+    // Show/update rerun button
+    const btnGroup = document.getElementById(`btn-group-${idx}`);
+    let existingRerun = document.getElementById(`btn-rerun-${idx}`);
+    if (!existingRerun) {
+      existingRerun = document.createElement('button');
+      existingRerun.className = 'btn-rerun';
+      existingRerun.id = `btn-rerun-${idx}`;
+      existingRerun.onclick = () => runStep(idx);
+      btnGroup.appendChild(existingRerun);
+    }
+    existingRerun.disabled = false;
+    existingRerun.innerHTML = `&#8635; Rerun`;
+
+    // Show run count badge
+    let countBadge = document.getElementById(`run-count-${idx}`);
+    if (!countBadge) {
+      countBadge = document.createElement('span');
+      countBadge.className = 'run-count-badge';
+      countBadge.id = `run-count-${idx}`;
+      btnGroup.appendChild(countBadge);
+    }
+    countBadge.textContent = `${runNumber} run${runNumber > 1 ? 's' : ''}`;
+
+    // Add trace with comparison data
+    const previousRun = runNumber > 1 ? demoState.runHistory[idx][runNumber - 2] : null;
+    addTraceGroup(idx, step, traces, totalTime, runNumber, previousRun, data._colo);
+
+    // Update KV summary if we have reruns
+    updateKvSummary();
+
+    // Update sparkline
+    renderSparkline(idx);
+
+    // Enable next step (only on first run)
+    if (!isRerun && idx + 1 < DEMO_STEPS.length) {
+      const nextBtn = document.getElementById(`btn-${idx + 1}`);
+      nextBtn.disabled = false;
+      const nextItem = document.getElementById(`step-${idx + 1}`);
+      nextItem.classList.add('active', 'expanded');
+
+      // Update next step's request display if it depends on previous data
+      const nextStep = DEMO_STEPS[idx + 1];
+      if (nextStep.bodyTemplate) {
+        const depValue = (idx + 1 <= 5) ? demoState.delegationToken : demoState.transactionId;
+        if (depValue) {
+          const nextReqBlock = document.getElementById(`request-${idx + 1}`);
+          const nextBody = nextStep.bodyTemplate(depValue);
+          nextReqBlock.innerHTML = `${nextStep.method} ${nextStep.endpoint}\n\n${formatJson(nextBody)}`;
+        }
+      }
+
+      demoState.currentStep = idx + 1;
+    }
+
+  } catch (err) {
+    // Network error or JSON parse failure
+    const respBlock = document.getElementById(`response-${idx}`);
+    const respBody = document.getElementById(`response-body-${idx}`);
+    respBody.innerHTML = `<span style="color:#f38ba8">Network error: ${escapeHtml(err.message || String(err))}</span>`;
+    respBlock.classList.add('visible');
+
+    btn.textContent = 'Error - Retry';
+    btn.classList.remove('running');
+    btn.disabled = false;
+    if (rerunBtn) { rerunBtn.disabled = false; rerunBtn.innerHTML = '&#8635; Rerun'; }
+    console.error('Step failed:', err);
+  } finally {
+    demoState.stepInFlight.delete(idx);
+  }
+}
+
+// ─── Run All ─────────────────────────────────────────────────────────────────
+
+async function runAllSteps() {
+  const btn = document.getElementById('btn-run-all');
+  btn.disabled = true;
+  const isRerun = demoState.currentStep >= DEMO_STEPS.length;
+  btn.textContent = isRerun ? 'Rerunning...' : 'Running...';
+
+  const startFrom = isRerun ? 0 : demoState.currentStep;
+  for (let i = startFrom; i < DEMO_STEPS.length; i++) {
+    await runStep(i);
+    if (i < DEMO_STEPS.length - 1) {
+      await new Promise(r => setTimeout(r, isRerun ? 300 : 400));
+    }
+  }
+
+  // Always re-enable with correct label after completion
+  btn.disabled = false;
+  btn.textContent = 'Rerun All Steps';
+}
+
+// ─── Reset ───────────────────────────────────────────────────────────────────
+
+async function resetDemo() {
+  // Generate a new session so all KV keys are fresh (guarantees cold reads)
+  sessionId = generateSessionId();
+  DEMO_STEPS = buildDemoSteps(sessionId);
+
+  demoState = {
+    currentStep: 0,
+    responses: {},
+    delegationToken: null,
+    transactionId: null,
+    runHistory: {},
+    stepInFlight: new Set(),
+    colo: null,
+  };
+
+  // Reset POP badge
+  const popBadge = document.getElementById('pop-badge');
+  const popLabel = document.getElementById('pop-label');
+  if (popBadge) popBadge.classList.remove('detected');
+  if (popLabel) popLabel.textContent = 'Waiting...';
+
+  document.getElementById('trace-timeline').innerHTML = `
+    <div class="trace-empty" id="trace-empty">
+      Run a step to see the request lifecycle traced across<br>
+      Edge &rarr; Worker &rarr; KV Store
+    </div>
+  `;
+
+  // Remove KV summary and comparison table if present
+  const summary = document.getElementById('kv-summary');
+  if (summary) summary.remove();
+  const compTable = document.getElementById('comparison-table');
+  if (compTable) compTable.remove();
+
+  // Hide 3x button
+  const btn3x = document.getElementById('btn-run-3x');
+  if (btn3x) btn3x.style.display = 'none';
+
+  const btn = document.getElementById('btn-run-all');
+  btn.disabled = false;
+  btn.textContent = 'Run All Steps';
+
+  initDemo();
+}
+
+// ─── Trace Rendering ─────────────────────────────────────────────────────────
+
+function addTraceGroup(stepIdx, step, traces, totalTime, runNumber, previousRun, colo) {
+  const timeline = document.getElementById('trace-timeline');
+  const empty = document.getElementById('trace-empty');
+  if (empty) empty.remove();
+
+  const group = document.createElement('div');
+  group.className = 'trace-group';
+  group.id = `trace-group-${stepIdx}-run-${runNumber}`;
+
+  // Build previous trace lookup for delta comparison (match by op name)
+  const prevTraceMap = {};
+  if (previousRun) {
+    previousRun.traces.forEach(t => {
+      prevTraceMap[t.op] = t.duration_ms;
+    });
+  }
+
+  const tempBadge = runNumber === 1
+    ? '<span class="temp-badge cold">cold</span>'
+    : '<span class="temp-badge warm">warm</span>';
+
+  let entriesHtml = '';
+
+  // Add round-trip entry (was "edge" — this is total end-to-end latency, not edge processing)
+  const prevTotal = previousRun ? previousRun.totalTime : null;
+  entriesHtml += renderTraceEntry('round-trip', `${step.method} ${step.endpoint}`, totalTime, 'ok', totalTime, prevTotal);
+
+  // Add each trace entry with delta comparison
+  traces.forEach(t => {
+    const prevDuration = prevTraceMap[t.op] ?? null;
+    entriesHtml += renderTraceEntry(t.service, t.op, t.duration_ms, t.status, totalTime, prevDuration);
+  });
+
+  // Total line with comparison
+  let totalExtra = '';
+  if (previousRun) {
+    const delta = totalTime - previousRun.totalTime;
+    const pct = previousRun.totalTime > 0 ? Math.round((delta / previousRun.totalTime) * 100) : 0;
+    const sign = delta <= 0 ? '' : '+';
+    const cls = delta < 0 ? 'faster' : delta > 0 ? 'slower' : 'same';
+    totalExtra = ` <span class="trace-delta ${cls}">(${sign}${delta}ms / ${sign}${pct}%)</span>`;
+  }
+
+  const coloHtml = colo && colo !== 'local' ? `<span class="trace-colo">${escapeHtml(colo)}</span>` : '';
+
+  const breakdownHtml = renderTimingBreakdown(traces, totalTime);
+
+  group.innerHTML = `
+    <div class="trace-group-header">
+      <span class="trace-step-badge">Step ${stepIdx + 1}</span>
+      ${step.title}
+      <span class="run-count-badge">Run #${runNumber}</span>
+      ${tempBadge}
+      ${coloHtml}
+    </div>
+    ${entriesHtml}
+    ${breakdownHtml}
+    <div class="trace-total">
+      Total: ${totalTime}ms &middot; ${traces.length} internal ops${totalExtra}
+    </div>
+  `;
+
+  timeline.appendChild(group);
+  timeline.scrollTop = timeline.scrollHeight;
+
+  // After all initial steps complete, update buttons
+  const allComplete = Object.keys(demoState.runHistory).length === DEMO_STEPS.length;
+  if (allComplete) {
+    const runAllBtn = document.getElementById('btn-run-all');
+    runAllBtn.disabled = false;
+    runAllBtn.textContent = 'Rerun All Steps';
+
+    // Show the 3x comparison button
+    const btn3x = document.getElementById('btn-run-3x');
+    if (btn3x) btn3x.style.display = '';
+  }
+}
+
+function renderTraceEntry(service, op, duration, status, totalTime, prevDuration) {
+  const barWidth = Math.max(Math.min((duration / Math.max(totalTime, 1)) * 100, 100), 3);
+  const barClass = service === 'kv' ? 'kv-bar' : 'worker-bar';
+  const statusClass = status === 'ok' ? 'trace-status-ok' : 'trace-status-error';
+  const statusSymbol = status === 'ok' ? '\u2713' : '\u2717';
+
+  // Build delta string for comparison
+  let deltaHtml = '';
+  if (prevDuration !== null && prevDuration !== undefined) {
+    const delta = duration - prevDuration;
+    const pct = prevDuration > 0 ? Math.round((delta / prevDuration) * 100) : 0;
+    if (delta !== 0) {
+      const sign = delta < 0 ? '' : '+';
+      const cls = delta < 0 ? 'faster' : 'slower';
+      deltaHtml = `<span class="trace-delta ${cls}">${sign}${delta}ms</span>`;
+    }
+  }
+
+  return `
+    <div class="trace-entry">
+      <span class="trace-service ${service}">${service}</span>
+      <span class="${statusClass}">${statusSymbol}</span>
+      <span class="trace-op">${escapeHtml(op)}</span>
+      <span class="trace-duration">${duration}ms${deltaHtml}</span>
+      <div class="trace-bar-container">
+        <div class="trace-bar ${barClass}" style="width:${barWidth}%"></div>
+      </div>
+    </div>
+  `;
+}
+
+// ─── KV Performance Summary ──────────────────────────────────────────────────
+
+function updateKvSummary() {
+  // Collect all KV GET operations across all runs
+  const coldKvReads = [];
+  const warmKvReads = [];
+
+  for (const stepIdx in demoState.runHistory) {
+    const runs = demoState.runHistory[stepIdx];
+    runs.forEach(run => {
+      const kvGets = run.traces.filter(t => t.service === 'kv' && t.op.startsWith('GET'));
+      kvGets.forEach(t => {
+        if (run.runNumber === 1) {
+          coldKvReads.push(t.duration_ms);
+        } else {
+          warmKvReads.push(t.duration_ms);
+        }
+      });
+    });
+  }
+
+  // Only show summary if we have both cold and warm data
+  if (coldKvReads.length === 0 || warmKvReads.length === 0) {
+    const existing = document.getElementById('kv-summary');
+    if (existing) existing.remove();
+    return;
+  }
+
+  const avg = arr => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length * 10) / 10 : 0;
+  const coldAvg = avg(coldKvReads);
+  const warmAvg = avg(warmKvReads);
+  const improvement = coldAvg > 0 ? Math.round((1 - warmAvg / coldAvg) * 100) : 0;
+
+  const timeline = document.getElementById('trace-timeline');
+  let summary = document.getElementById('kv-summary');
+  if (!summary) {
+    summary = document.createElement('div');
+    summary.className = 'kv-summary';
+    summary.id = 'kv-summary';
+    timeline.parentNode.insertBefore(summary, timeline);
+  }
+
+  summary.innerHTML = `
+    <span class="kv-summary-title">KV Read Performance</span>
+    <span class="kv-summary-stat">
+      <span class="label">Cold avg:</span>
+      <span class="value cold-val">${coldAvg}ms</span>
+      <span style="color:var(--text-dim)">(${coldKvReads.length} reads)</span>
+    </span>
+    <span class="kv-summary-stat">
+      <span class="label">Warm avg:</span>
+      <span class="value warm-val">${warmAvg}ms</span>
+      <span style="color:var(--text-dim)">(${warmKvReads.length} reads)</span>
+    </span>
+    ${improvement > 0
+      ? `<span class="kv-summary-stat"><span class="delta-val">${improvement}% faster when warm</span></span>`
+      : ''}
+  `;
+}
+
+// ─── 3x Comparison ───────────────────────────────────────────────────────────
+
+async function run3xComparison() {
+  const btn = document.getElementById('btn-run-3x');
+  const runAllBtn = document.getElementById('btn-run-all');
+  btn.disabled = true;
+  btn.textContent = 'Running 3x...';
+  runAllBtn.disabled = true;
+
+  // If demo hasn't been run yet, do the first run
+  if (demoState.currentStep < DEMO_STEPS.length) {
+    runAllBtn.textContent = 'Running (1/3)...';
+    for (let i = demoState.currentStep; i < DEMO_STEPS.length; i++) {
+      await runStep(i);
+      if (i < DEMO_STEPS.length - 1) await new Promise(r => setTimeout(r, 300));
+    }
+  }
+
+  // Now do 2 more reruns (or 3 if the demo was already complete)
+  const runsNeeded = demoState.currentStep >= DEMO_STEPS.length ? 3 : 2;
+  for (let run = 0; run < runsNeeded; run++) {
+    btn.textContent = `Running (${run + 2}/${runsNeeded + 1})...`;
+    for (let i = 0; i < DEMO_STEPS.length; i++) {
+      await runStep(i);
+      if (i < DEMO_STEPS.length - 1) await new Promise(r => setTimeout(r, 200));
+    }
+    if (run < runsNeeded - 1) await new Promise(r => setTimeout(r, 500));
+  }
+
+  // Render comparison table
+  renderComparisonTable();
+
+  btn.disabled = false;
+  btn.textContent = 'Run 3x Comparison';
+  runAllBtn.disabled = false;
+  runAllBtn.textContent = 'Rerun All Steps';
+}
+
+function renderComparisonTable() {
+  // Remove existing table
+  const existing = document.getElementById('comparison-table');
+  if (existing) existing.remove();
+
+  const container = document.createElement('div');
+  container.className = 'comparison-table-container';
+  container.id = 'comparison-table';
+
+  let rows = '';
+  for (let i = 0; i < DEMO_STEPS.length; i++) {
+    const runs = demoState.runHistory[i] || [];
+    if (runs.length < 2) continue;
+
+    // Take last 3 runs (or fewer if not enough)
+    const recent = runs.slice(-3);
+    const cells = recent.map((run, ri) => {
+      const cls = ri === 0 ? 'cold-cell' : ri === 1 ? 'warm-cell' : 'hot-cell';
+      return `<td class="${cls}">${run.totalTime}ms</td>`;
+    }).join('');
+
+    // Fill empty cells if fewer than 3 runs
+    const emptyCells = 3 - recent.length;
+    const padding = Array(emptyCells).fill('<td>-</td>').join('');
+
+    // Calculate improvement from first to last
+    const first = recent[0].totalTime;
+    const last = recent[recent.length - 1].totalTime;
+    const delta = first - last;
+    const pct = first > 0 ? Math.round((delta / first) * 100) : 0;
+    const deltaCls = delta > 0 ? 'faster' : delta < 0 ? 'slower' : '';
+    const deltaSign = delta > 0 ? '-' : delta < 0 ? '+' : '';
+    const deltaText = delta !== 0 ? `${deltaSign}${Math.abs(delta)}ms (${deltaSign}${Math.abs(pct)}%)` : 'same';
+
+    rows += `
+      <tr>
+        <td class="step-name">${DEMO_STEPS[i].title}</td>
+        ${cells}${padding}
+        <td class="delta-cell ${deltaCls}">${deltaText}</td>
+      </tr>
+    `;
+  }
+
+  container.innerHTML = `
+    <h3>Cold vs. Warm Comparison</h3>
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Step</th>
+          <th>Run 1 (Cold)</th>
+          <th>Run 2 (Warm)</th>
+          <th>Run 3 (Hot)</th>
+          <th>Improvement</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+
+  // Insert before the demo layout
+  const demoLayout = document.querySelector('.demo-layout');
+  demoLayout.parentNode.insertBefore(container, demoLayout.nextSibling);
+}
+
+// ─── Timing Breakdown Bar ────────────────────────────────────────────────────
+
+function renderTimingBreakdown(traces, totalTime) {
+  if (!traces.length || totalTime <= 0) return '';
+
+  const kvTime = traces.filter(t => t.service === 'kv').reduce((s, t) => s + t.duration_ms, 0);
+  const workerTime = traces.filter(t => t.service === 'worker').reduce((s, t) => s + t.duration_ms, 0);
+  const networkTime = Math.max(0, totalTime - kvTime - workerTime);
+
+  const pct = (v) => Math.max(0, Math.round((v / totalTime) * 100));
+  const kvPct = pct(kvTime);
+  const workerPct = pct(workerTime);
+  const networkPct = Math.max(0, 100 - kvPct - workerPct);
+
+  // Only show label inside segment if it's wide enough
+  const segLabel = (ms, p) => p >= 12 ? `${ms}ms` : '';
+
+  return `
+    <div class="timing-breakdown">
+      <div class="timing-bar-row">
+        ${networkPct > 0 ? `<div class="timing-bar-segment seg-network" style="width:${networkPct}%">${segLabel(networkTime, networkPct)}</div>` : ''}
+        ${workerPct > 0 ? `<div class="timing-bar-segment seg-worker" style="width:${workerPct}%">${segLabel(workerTime, workerPct)}</div>` : ''}
+        ${kvPct > 0 ? `<div class="timing-bar-segment seg-kv" style="width:${kvPct}%">${segLabel(kvTime, kvPct)}</div>` : ''}
+      </div>
+      <div class="timing-legend">
+        <span class="timing-legend-item"><span class="timing-legend-dot net"></span>Network ${networkTime}ms (${networkPct}%)</span>
+        <span class="timing-legend-item"><span class="timing-legend-dot wrk"></span>Worker ${workerTime}ms (${workerPct}%)</span>
+        <span class="timing-legend-item"><span class="timing-legend-dot kv"></span>KV ${kvTime}ms (${kvPct}%)</span>
+      </div>
+    </div>
+  `;
+}
+
+// ─── POP Location Badge ──────────────────────────────────────────────────────
+
+function updatePopBadge(colo) {
+  if (!colo) return;
+  demoState.colo = colo;
+  const badge = document.getElementById('pop-badge');
+  const label = document.getElementById('pop-label');
+  if (colo === 'local') {
+    label.textContent = 'Local dev';
+    badge.classList.remove('detected');
+  } else {
+    label.textContent = `POP: ${colo}`;
+    badge.classList.add('detected');
+  }
+}
+
+// ─── Sparkline ───────────────────────────────────────────────────────────────
+
+function renderSparkline(stepIdx) {
+  const runs = demoState.runHistory[stepIdx];
+  if (!runs || runs.length < 1) return;
+
+  const container = document.getElementById(`sparkline-${stepIdx}`);
+  if (!container) {
+    // Create container in step header
+    const header = document.querySelector(`#step-${stepIdx} .demo-step-header`);
+    if (!header) return;
+    const el = document.createElement('span');
+    el.className = 'sparkline-container';
+    el.id = `sparkline-${stepIdx}`;
+    header.appendChild(el);
+  }
+
+  const target = document.getElementById(`sparkline-${stepIdx}`);
+  const values = runs.map(r => r.totalTime);
+  const w = 48, h = 16;
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = max - min || 1;
+
+  if (values.length === 1) {
+    // Single dot
+    target.innerHTML = `
+      <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <circle cx="${w/2}" cy="${h/2}" r="2.5" fill="var(--accent)" />
+      </svg>
+      <span class="sparkline-label">${values[0]}ms</span>
+    `;
+    return;
+  }
+
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * (w - 4) + 2;
+    const y = h - 2 - ((v - min) / range) * (h - 4);
+    return `${x},${y}`;
+  });
+
+  const lastVal = values[values.length - 1];
+  const color = lastVal <= values[0] ? 'var(--success)' : 'var(--error)';
+
+  target.innerHTML = `
+    <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+      <polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="${points[points.length-1].split(',')[0]}" cy="${points[points.length-1].split(',')[1]}" r="2" fill="${color}" />
+    </svg>
+    <span class="sparkline-label">${lastVal}ms</span>
+  `;
+}
+
+// ─── JSON Formatting ─────────────────────────────────────────────────────────
+
+function formatJson(obj) {
+  if (!obj) return '{}';
+  // Escape HTML entities FIRST to prevent XSS, then apply syntax highlighting.
+  // escapeHtml handles &, <, > — quotes stay as " so regex patterns still match.
+  const json = escapeHtml(JSON.stringify(obj, null, 2));
+  return json.replace(
+    /("(?:\\.|[^"\\])*")\s*:/g,
+    '<span class="json-key">$1</span>:'
+  ).replace(
+    /:\s*("(?:\\.|[^"\\])*")/g,
+    ': <span class="json-string">$1</span>'
+  ).replace(
+    /:\s*(\d+\.?\d*)/g,
+    ': <span class="json-number">$1</span>'
+  ).replace(
+    /:\s*(true|false)/g,
+    ': <span class="json-bool">$1</span>'
+  );
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+
+initDemo();
+</script>
+</body>
 </html>

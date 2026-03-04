@@ -197,6 +197,19 @@ export default app;
 
 ---
 
+## Built with Generative AI
+
+This project was built extensively with the assistance of generative AI tools, including [Claude](https://claude.ai) (Anthropic) via [OpenCode](https://opencode.ai). AI was used throughout the development process:
+
+- **Code generation** — Worker route handlers, KV data modeling, TypeScript types, and the TracedKV instrumentation wrapper
+- **Frontend** — The entire single-file SPA (`public/index.html`), including the UI layout, inline CSS design system, interactive demo logic, syntax highlighting engine, and the "View Code" modal
+- **Educational comments** — The 64+ tagged comments in `src/index.ts` and all matching `WORKER_CODE` snippets in `index.html`
+- **Documentation** — This README, `package.json` metadata, and `.gitignore` updates
+
+The human author directed the design, reviewed and tested all outputs, debugged issues (including the `highlightTs()` regex ordering bug), and made all final decisions about content and structure.
+
+---
+
 ## License
 
 [MIT](LICENSE) © Gryczka

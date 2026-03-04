@@ -1,6 +1,14 @@
 {
 	"name": "agentic-commerce-registry-demo",
+	"version": "1.0.0",
+	"description": "A Cloudflare Workers demo showing how AI agents, merchants, and shoppers interact through a delegation and trust registry built on Workers KV.",
 	"type": "module",
+	"license": "MIT",
+	"author": "Gryczka",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Gryczka/agentic-commerce-registry-demo.git"
+	},
 	"scripts": {
 		"dev": "wrangler dev",
 		"deploy": "wrangler deploy --minify",

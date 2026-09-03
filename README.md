@@ -51,6 +51,8 @@ Each step returns a `_trace` array showing every KV operation and its wall-clock
 
 ## Architecture
 
+![Agentic Commerce Registry Cloudflare architecture](docs/architecture-tile-dark.png)
+
 ```
 Browser (public/index.html)
     ���   Fetch API calls to /api/*

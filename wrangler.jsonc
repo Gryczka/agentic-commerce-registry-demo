@@ -19,13 +19,11 @@
 	],
 	/**
 	 * KV Namespace for the Agentic Commerce Registry
-	 * Create with: npx wrangler kv namespace create REGISTRY
-	 * Then replace the id below with the generated namespace ID
+	 * Wrangler automatically provisions it when no resource ID is specified.
 	 */
 	"kv_namespaces": [
 		{
-			"binding": "REGISTRY",
-			"id": "731a5e0c9544479f916a891af9c01b2c"
+			"binding": "REGISTRY"
 		}
 	]
 	/**

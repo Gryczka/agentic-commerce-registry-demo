@@ -1,5 +1,8 @@
 # Agentic Commerce Registry — Cloudflare Workers Demo
 
+> [!IMPORTANT]
+> **Temporary-account preview branch: `temporary-account-preview`.** Run `npm run temporary:deploy` to create an unauthenticated preview on `workers.dev`; Wrangler automatically provisions this demo's `REGISTRY` KV namespace. Wrangler must be unauthenticated: active OAuth credentials, an API token, or a global API key cause `--temporary` to error. Complete the claim flow within about 60 minutes (opening the link alone is not enough), or Cloudflare deletes the temporary account and all of its resources. Temporary accounts are for previews and support only a limited set of products, operations, and quotas. The full/default `main` branch is unchanged, and the normal `npm run deploy` workflow and Deploy button remain available. See [Claim deployments (temporary accounts)](https://developers.cloudflare.com/workers/platform/claim-deployments/).
+
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Gryczka/agentic-commerce-registry-demo)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Built with Hono](https://img.shields.io/badge/Built%20with-Hono-E36002)](https://hono.dev)
@@ -100,7 +103,7 @@ The Worker has **no external dependencies at runtime** beyond Hono. All persiste
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18+
+- [Node.js](https://nodejs.org/) 22+
 - A [Cloudflare account](https://dash.cloudflare.com/sign-up) (free tier is sufficient)
 - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) (installed via `npm install`)
 
@@ -117,17 +120,17 @@ npm install
 # 3. Generate TypeScript types for your Worker bindings
 npm run cf-typegen
 
-# 4. Create a KV namespace for local development
-npx wrangler kv namespace create REGISTRY
-
-# 5. Add the returned namespace ID to wrangler.jsonc under kv_namespaces[].id
-#    (the existing ID in the file belongs to the live demo account — replace it)
-
-# 6. Start the local dev server
+# 4. Start the local dev server
 npm run dev
 ```
 
-The dev server starts at `http://localhost:8787`. Wrangler uses a local KV simulation by default, so no data is written to your Cloudflare account during development.
+The dev server starts at `http://localhost:8787`. Wrangler uses a local KV simulation by default, so no data is written to your Cloudflare account during development. Because the `REGISTRY` binding omits an account-specific ID, Wrangler can automatically provision a namespace when you deploy.
+
+### Temporary-account deployment
+
+The binding-only `REGISTRY` declaration uses Wrangler's [beta automatic resource provisioning](https://developers.cloudflare.com/workers/wrangler/configuration/#automatic-provisioning). On deployment, Wrangler creates the namespace and writes its generated ID back to `wrangler.jsonc`.
+
+The site runner deploys from an ephemeral extracted checkout, so that write-back is destroyed with the checkout after the run. If you run `npm run temporary:deploy` in a persistent local checkout, expect `wrangler.jsonc` to become modified; do not commit or merge the temporary account's namespace ID. Restore this branch's binding-only declaration after the preview. The script only checks generated binding types before invoking Wrangler and does not merge, remove, or otherwise alter `main`'s persistent KV configuration.
 
 ### Deploy to Cloudflare
 
@@ -176,7 +179,7 @@ Workers are JavaScript/TypeScript functions that run on Cloudflare's edge networ
 
 ```jsonc
 // wrangler.jsonc
-"kv_namespaces": [{ "binding": "REGISTRY", "id": "<your-namespace-id>" }],
+"kv_namespaces": [{ "binding": "REGISTRY" }],
 "assets": { "binding": "ASSETS", "directory": "./public" }
 ```
 

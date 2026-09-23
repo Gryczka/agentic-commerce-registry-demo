@@ -3,6 +3,9 @@
 	"version": "1.0.0",
 	"description": "A Cloudflare Workers demo showing how AI agents, merchants, and shoppers interact through a delegation and trust registry built on Workers KV.",
 	"type": "module",
+	"engines": {
+		"node": ">=22"
+	},
 	"license": "MIT",
 	"author": "Gryczka",
 	"repository": {
@@ -12,6 +15,7 @@
 	"scripts": {
 		"dev": "wrangler dev",
 		"deploy": "wrangler deploy --minify",
+		"temporary:deploy": "npm run cf-typegen -- --check && wrangler deploy --temporary --minify",
 		"cf-typegen": "wrangler types --env-interface CloudflareBindings"
 	},
 	"dependencies": {
@@ -19,6 +23,6 @@
 	},
 	"devDependencies": {
 		"@types/node": "^25.3.0",
-		"wrangler": "^4.66.0"
+		"wrangler": "4.134.0"
 	}
 }

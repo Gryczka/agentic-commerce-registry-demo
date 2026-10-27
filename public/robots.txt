@@ -1,0 +1,5 @@
+User-agent: *
+Content-Signal: search=yes,ai-input=yes,ai-train=no
+Allow: /
+Disallow: /api/
+Sitemap: https://agentic-commerce-registry-demo.dwarven.workers.dev/sitemap.xml

@@ -1,4 +1,4 @@
-// Agentic Commerce Registry �� Cloudflare Worker
+// Agentic Commerce Registry — Cloudflare Worker
 // A Cloudflare Worker is server-side code that runs on Cloudflare's global edge network.
 // This Worker uses Hono (a lightweight web framework built for Workers) for routing,
 // and Workers KV (a globally distributed key-value store) for persistence.
@@ -39,11 +39,23 @@ interface Merchant {
   registeredAt: string;
 }
 
+// [Agentic Commerce Registry] KYA (Know Your Agent) verification status.
+// Mirrors the verification_status claim carried in the provider's KYA token.
+type KyaVerificationStatus = "VERIFIED" | "PENDING" | "FAILED";
+
 interface Agent {
   id: string;
   name: string;
   capabilities: string[];
   registeredAt: string;
+  // KYA identity verification fields — populated by the external KYA provider.
+  // If the KYA provider is unreachable, kyaVerificationStatus is "PENDING"
+  // and the agent is still registered (graceful degradation).
+  kyaToken?: string;                  // encoded KYA token (base64url header.payload.sig)
+  kyaTokenId?: string;                // jti claim — use for /kya/verify/:tokenId lookup
+  kyaVerificationStatus?: KyaVerificationStatus;
+  kyaProvider?: string;               // "mock" | "lambda" | "hosted" | "unavailable"
+  kyaVerifiedAt?: string;             // ISO timestamp when verification completed
 }
 
 // [Agentic Commerce Registry] A delegation grants an AI agent limited authority to act on a shopper's behalf.
@@ -80,9 +92,14 @@ interface Transaction {
 // in wrangler.jsonc and injected at runtime via the `c.env` object in each handler.
 // - REGISTRY: a Workers KV namespace for storing all demo data as JSON key-value pairs
 // - ASSETS: serves the static frontend files from the /public directory
+// - KYA_PROVIDER_URL: env var pointing at the external KYA verification service.
+//   Phase 1: Mock Cloudflare Worker  → https://kya-provider-mock.workers.dev
+//   Phase 2: AWS Lambda              → https://<id>.execute-api.<region>.amazonaws.com/kya
+//   Phase 3: Hosted KYA provider API → https://<provider-host>/kya
 type Bindings = {
   REGISTRY: KVNamespace;
   ASSETS: Fetcher;
+  KYA_PROVIDER_URL: string;
 };
 
 // ─── Traced KV Helper ────────────────────────────────────────────────────────
@@ -338,6 +355,12 @@ app.post("/api/register/merchant", async (c) => {
 });
 
 // ─── Register Agent ──────────────────────────────────────────────────────────
+// [Agentic Commerce Registry] Agent registration now includes a KYA (Know Your Agent)
+// verification step. After building the agent identity, the Worker makes an outbound
+// fetch() call to an external KYA provider to obtain a signed identity token.
+// The token is stored in the agent's KV record alongside the agent data.
+// If the KYA provider is unreachable, the agent still registers with status "PENDING"
+// (graceful degradation — the KYA call never blocks registration).
 
 app.post("/api/register/agent", async (c) => {
   // [Workers] Access the KV binding configured in wrangler.jsonc.
@@ -358,20 +381,94 @@ app.post("/api/register/agent", async (c) => {
   // [Agentic Commerce Registry] Build the agent identity with its capabilities.
   const genStart = Date.now();
   const id = body.id || `agent-${crypto.randomUUID().slice(0, 8)}`;
+  const capabilities: string[] = body.capabilities ?? ["purchase", "negotiate"];
   const agent: Agent = {
     id,
     name: body.name,
-    capabilities: body.capabilities ?? ["purchase", "negotiate"],
+    capabilities,
     registeredAt: new Date().toISOString(),
   };
   tkv.addWorkerTrace("build_identity", Date.now() - genStart);
 
-  // [Workers KV] Persist the agent to KV under the "agent:" prefix.
+  // ── KYA Verification ────────────────────────────────────────────────────────
+  // [Workers] Make an outbound fetch() to the external KYA provider.
+  // This is a plain HTTP call — no service binding — simulating a real external API.
+  // KYA_PROVIDER_URL is an env var set in wrangler.jsonc:
+  //   Phase 1: Mock Cloudflare Worker  → https://kya-provider-mock.workers.dev
+  //   Phase 2: AWS Lambda              → https://<id>.execute-api.<region>.amazonaws.com/kya
+  //   Phase 3: Hosted KYA provider API → https://<provider-host>/kya
+  const kyaStart = Date.now();
+  try {
+    const kyaRes = await fetch(`${c.env.KYA_PROVIDER_URL}/kya/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentId: id, agentName: body.name, capabilities }),
+    });
+
+    if (kyaRes.ok) {
+      // [Agentic Commerce Registry] KYA verification succeeded — attach token to agent record.
+      const kyaData = await kyaRes.json() as {
+        token: string;
+        tokenId: string;
+        claims: { bid: { verification_status: string }; apd: { provider: string } };
+      };
+      agent.kyaToken = kyaData.token;
+      agent.kyaTokenId = kyaData.tokenId;
+      agent.kyaVerificationStatus = kyaData.claims.bid.verification_status as KyaVerificationStatus;
+      agent.kyaProvider = kyaData.claims.apd.provider;
+      agent.kyaVerifiedAt = new Date().toISOString();
+      tkv.addWorkerTrace("kya_verify", Date.now() - kyaStart, "ok");
+    } else {
+      // [Agentic Commerce Registry] KYA provider returned an error — degrade gracefully.
+      agent.kyaVerificationStatus = "PENDING";
+      agent.kyaProvider = "unavailable";
+      tkv.addWorkerTrace("kya_verify", Date.now() - kyaStart, "error");
+    }
+  } catch {
+    // [Workers] fetch() threw (network error, DNS failure, timeout) — degrade gracefully.
+    // The agent is still registered; KYA can be retried later via GET /api/agent/:id/kya.
+    agent.kyaVerificationStatus = "PENDING";
+    agent.kyaProvider = "unavailable";
+    tkv.addWorkerTrace("kya_verify", Date.now() - kyaStart, "error");
+  }
+
+  // [Workers KV] Persist the agent (with KYA fields) to KV under the "agent:" prefix.
   await tkv.put(`agent:${id}`, agent);
 
   return c.json({
     success: true,
     data: agent,
+    _colo: getColo(c),
+    _trace: tkv.getTraces(),
+  });
+});
+
+// ─── Get Agent KYA Status ────────────────────────────────────────────────────
+// [Agentic Commerce Registry] Retrieve the KYA token and verification status for
+// a registered agent. Useful for the seller-side verification flow and for
+// re-checking KYA status if the initial registration had status "PENDING".
+
+app.get("/api/agent/:id/kya", async (c) => {
+  // [Workers] Access the KV binding to look up the agent record.
+  const tkv = new TracedKV(c.env.REGISTRY);
+  const agentId = c.req.param("id");
+
+  const agent = await tkv.get<Agent>(`agent:${agentId}`);
+  if (!agent) {
+    return c.json({ success: false, error: `Agent ${agentId} not found`, _colo: getColo(c), _trace: tkv.getTraces() }, 404);
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      agentId: agent.id,
+      agentName: agent.name,
+      kyaToken: agent.kyaToken,
+      kyaTokenId: agent.kyaTokenId,
+      kyaVerificationStatus: agent.kyaVerificationStatus ?? "PENDING",
+      kyaProvider: agent.kyaProvider ?? "unavailable",
+      kyaVerifiedAt: agent.kyaVerifiedAt,
+    },
     _colo: getColo(c),
     _trace: tkv.getTraces(),
   });
@@ -695,7 +792,7 @@ app.post("/api/transaction/initiate", async (c) => {
   });
 });
 
-// ��── Complete Transaction ────────────────────────────────────────────────────
+// ──── Complete Transaction ────────────────────────────────────────────────────
 // [Agentic Commerce Registry] Finalize the transaction — mark it as completed
 // and return a full summary of all parties involved.
 

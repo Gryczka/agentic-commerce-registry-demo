@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kya-provider-mock",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-02-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  }
+  /**
+   * No KV or other bindings needed — the mock provider is stateless.
+   * Token storage is in-memory (Map) and resets on cold start.
+   *
+   * Deploy with:
+   *   cd kya-provider-mock && npm install && npx wrangler deploy
+   *
+   * Then set KYA_PROVIDER_URL in the registry Worker's wrangler.jsonc to:
+   *   https://kya-provider-mock.<your-subdomain>.workers.dev
+   */
+}

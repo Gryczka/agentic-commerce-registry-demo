@@ -5,11 +5,12 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "agentic-commerce-registry-demo",
-	"main": "src/index.ts",
+	"main": "src/production.ts",
 	"compatibility_date": "2026-02-17",
 	"assets": {
 		"binding": "ASSETS",
-		"directory": "./public"
+		"directory": "./public",
+		"run_worker_first": ["/api/*"]
 	},
 	"observability": {
 		"enabled": true
@@ -27,7 +28,19 @@
 			"binding": "REGISTRY",
 			"id": "731a5e0c9544479f916a891af9c01b2c"
 		}
-	]
+	],
+	"durable_objects": { "bindings": [{ "name": "AUTHORITY", "class_name": "CommerceAuthority" }] },
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["CommerceAuthority"] }],
+	"vars": {
+		"SESSION_TTL_SECONDS": "7200",
+		"MAX_SESSIONS": "100",
+		"NEW_SESSIONS_PER_HOUR": "20",
+		"MAX_RECORDS": "5000",
+		"MAX_SESSION_RECORDS": "100",
+		"SESSION_ACTIONS_PER_MINUTE": "30",
+		"GLOBAL_ACTIONS_PER_MINUTE": "120",
+		"GLOBAL_ACTIONS_PER_DAY": "1000"
+	}
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

@@ -12,13 +12,20 @@
 	"scripts": {
 		"dev": "wrangler dev",
 		"deploy": "wrangler deploy --minify",
-		"cf-typegen": "wrangler types --env-interface CloudflareBindings"
+		"cf-typegen": "wrangler types --env-interface CloudflareBindings",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:production": "vitest run --config vitest.production.config.ts",
+		"typecheck:production": "tsc -p tsconfig.production.json"
 	},
 	"dependencies": {
 		"hono": "^4.11.10"
 	},
 	"devDependencies": {
+		"@cloudflare/vitest-pool-workers": "^0.12.19",
 		"@types/node": "^25.3.0",
+		"typescript": "~5.9.3",
+		"vitest": "~3.0.0",
 		"wrangler": "^4.66.0"
 	}
 }

@@ -1,0 +1,19 @@
+{
+  "name": "kya-provider-mock",
+  "version": "1.0.0",
+  "description": "Mock KYA (Know Your Agent) identity verification provider — Phase 1 of the KYA provider roadmap.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "hono": "^4.11.10"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "wrangler": "^4.66.0"
+  }
+}

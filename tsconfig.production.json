@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["./worker-configuration.d.ts", "node"]
+  },
+  "include": ["src/production.ts", "src/authority.ts", "worker-configuration.d.ts"]
+}

@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Agentic Commerce Registry | Cloudflare</title>
   <meta name="description" content="A decentralized identity registry enabling trusted commerce between shoppers, merchants, and AI agents on Cloudflare Workers." />
+  <link rel="canonical" href="https://agentic-commerce-registry-demo.dwarven.workers.dev/" />
   <style>
     /* ─── Custom Fonts ────────────────────── */
     @font-face {
@@ -358,6 +359,7 @@
       font-weight: 600;
     }
     .step-method.post { background: rgba(22,163,74,0.1); color: var(--success); }
+    .step-method.get { background: rgba(8,145,178,0.1); color: var(--cyan); }
 
     .demo-step-body {
       display: none;
@@ -772,6 +774,35 @@
       background: rgba(234,88,12,0.12);
       color: #c2410c;
       border: 1px solid rgba(234,88,12,0.25);
+    }
+    /* ─── KYA Status Badge ────────────────── */
+    .kya-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+    .kya-badge.verified {
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1px solid rgba(22,163,74,0.25);
+    }
+    .kya-badge.pending {
+      background: var(--warning-bg);
+      color: var(--warning);
+      border: 1px solid rgba(217,119,6,0.25);
+    }
+    .kya-badge .kya-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
     }
 
     .trace-delta {
@@ -1361,7 +1392,7 @@
             <tr><td>merchant:{id}</td><td>Business + capabilities</td></tr>
             <tr><td>agent:{id}</td><td>Agent identity</td></tr>
             <tr><td>delegation:{a}:{s}</td><td>Delegation record</td></tr>
-            <tr><td>token:{hash}</td><td>Token fast-lookup</td></tr>
+            <tr><td>token:{capability}</td><td>Session-owned token lookup</td></tr>
             <tr><td>transaction:{id}</td><td>Transaction state</td></tr>
           </tbody>
         </table>
@@ -1399,9 +1430,9 @@
         <table>
           <thead><tr><th>Feature</th><th>Description</th></tr></thead>
           <tbody>
-            <tr><td>Token Generation</td><td>SHA-256 hashed UUIDs</td></tr>
+            <tr><td>Token Generation</td><td>256-bit Web Crypto capabilities</td></tr>
             <tr><td>Scope Control</td><td>Per-delegation limits</td></tr>
-            <tr><td>Expiry</td><td>24h token TTL (KV native)</td></tr>
+            <tr><td>Expiry</td><td>Two-hour session and KV TTL</td></tr>
             <tr><td>Amount Limits</td><td>Configurable per delegation</td></tr>
             <tr><td>Type Restrictions</td><td>loan, lease, purchase</td></tr>
             <tr><td>Credit Check</td><td>Against shopper profile</td></tr>
@@ -1416,6 +1447,8 @@
 <footer>
   <div class="container">
     Agentic Commerce Registry Demo &mdash; Powered by Cloudflare Workers + KV
+    <p>Each visitor has a private, bounded demo session. Reset clears only that session. All key patterns above are prefixed with a server-owned session hash and reset generation.</p>
+    <p><a href="https://developers.cloudflare.com/workers/?utm_source=gryczka.dev&amp;utm_medium=referral&amp;utm_campaign=app-garden&amp;utm_content=demo-resource&amp;utm_term=workers">Workers documentation</a> · <a href="https://developers.cloudflare.com/kv/?utm_source=gryczka.dev&amp;utm_medium=referral&amp;utm_campaign=app-garden&amp;utm_content=demo-resource&amp;utm_term=kv">KV documentation</a></p>
   </div>
 </footer>
 
@@ -1520,7 +1553,7 @@ function buildDemoSteps(sid) {
         name: 'ShopBot AI',
         capabilities: ['purchase', 'negotiate', 'compare']
       },
-      description: 'ShopBot AI registers as a purchasing agent capable of negotiation and purchase.'
+      description: 'ShopBot registers as a purchasing agent inside your private demo session. This production baseline does not call KYA providers or AI models.'
     },
     {
       id: 'delegate',
@@ -1575,6 +1608,13 @@ function buildDemoSteps(sid) {
 
 let sessionId = generateSessionId();
 let DEMO_STEPS = buildDemoSteps(sessionId);
+let sessionReady = null;
+function ensureSession() {
+  if (!sessionReady) sessionReady = fetch('/api/session', { method: 'POST', credentials: 'same-origin' }).then(async response => {
+    if (!response.ok) throw new Error((await response.json()).error || 'Session admission unavailable');
+  }).catch(error => { sessionReady = null; throw error; });
+  return sessionReady;
+}
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -1699,7 +1739,8 @@ app.post("/api/register/shopper", async (c) => {
   'register-agent': {
     title: 'Register Agent',
     endpoint: 'POST /api/register/agent',
-    code: `app.post("/api/register/agent", async (c) => {
+    code: `// [Agentic Commerce Registry] Register a session-owned agent.
+app.post("/api/register/agent", async (c) => {
   // [Workers] Access the KV binding configured in wrangler.jsonc.
   const tkv = new TracedKV(c.env.REGISTRY);
   const start = Date.now();
@@ -1718,15 +1759,16 @@ app.post("/api/register/shopper", async (c) => {
   // [Agentic Commerce Registry] Build the agent identity with its capabilities.
   const genStart = Date.now();
   const id = body.id || \`agent-\${crypto.randomUUID().slice(0, 8)}\`;
+  const capabilities: string[] = body.capabilities ?? ["purchase", "negotiate"];
   const agent: Agent = {
     id,
     name: body.name,
-    capabilities: body.capabilities ?? ["purchase", "negotiate"],
+    capabilities,
     registeredAt: new Date().toISOString(),
   };
   tkv.addWorkerTrace("build_identity", Date.now() - genStart);
 
-  // [Workers KV] Persist the agent to KV under the "agent:" prefix.
+  // [Workers KV] Persist the agent in the authorized session.
   await tkv.put(\`agent:\${id}\`, agent);
 
   return c.json({
@@ -2192,7 +2234,7 @@ function showWorkerCode(stepId) {
   if (!entry) return;
 
   document.getElementById('code-modal-title').textContent = entry.title;
-  document.getElementById('code-modal-subtitle').textContent = 'src/index.ts';
+  document.getElementById('code-modal-subtitle').textContent = 'Domain illustration — production uses src/production.ts session authorization, bounded JSON and OwnedKV TTL/reservations';
   document.getElementById('code-modal-content').innerHTML = highlightTs(entry.code);
   document.getElementById('code-modal-overlay').classList.add('visible');
   document.body.style.overflow = 'hidden';
@@ -2221,20 +2263,25 @@ function initDemo() {
     const item = document.createElement('div');
     item.className = 'demo-step-item' + (idx === 0 ? ' active expanded' : '');
     item.id = `step-${idx}`;
+    const methodClass = step.method === 'GET' ? 'get' : 'post';
+    const initialEndpoint = step.endpointTemplate
+      ? step.endpointTemplate('&lt;agentId from step 3&gt;')
+      : step.endpoint;
+    const initialRequestBody = step.endpointTemplate
+      ? ''
+      : '\n\n' + formatJson(step.body || step.bodyTemplate?.('&lt;from previous step&gt;') || {});
     item.innerHTML = `
       <div class="demo-step-header" onclick="toggleStep(${idx})">
         <div class="step-indicator">${idx + 1}</div>
         <div class="step-title">${step.title}</div>
-        <span class="step-method post">${step.method}</span>
+        <span class="step-method ${methodClass}">${step.method}</span>
       </div>
       <div class="demo-step-body">
         <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">${step.description}</p>
         <div class="code-label">Request</div>
         <div class="request-block-wrapper">
           <button class="btn-view-code" onclick="showWorkerCode('${step.id}')" title="View the Worker handler code for this endpoint">{ } View Code</button>
-          <div class="code-block" id="request-${idx}">${step.method} ${step.endpoint}
-
-${formatJson(step.body || step.bodyTemplate?.('&lt;from previous step&gt;') || {})}</div>
+          <div class="code-block" id="request-${idx}">${step.method} ${initialEndpoint}${initialRequestBody}</div>
         </div>
         <div id="btn-group-${idx}" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
           <button class="btn-run" id="btn-${idx}" onclick="runStep(${idx})"
@@ -2284,25 +2331,36 @@ async function runStep(idx) {
     rerunBtn.textContent = 'Running...';
   }
 
-  // Determine request body
+  // Determine request body and endpoint
   let body = step.body;
+  // Resolve dynamic endpoint (e.g. GET /api/agent/:id/kya uses the agentId from step 2)
+  let endpoint = step.endpoint;
+  if (step.endpointTemplate) {
+    const agentId = demoState.responses[2]?.data?.id;
+    endpoint = step.endpointTemplate(agentId || '<agentId>');
+    const reqBlock = document.getElementById(`request-${idx}`);
+    reqBlock.innerHTML = `${step.method} ${endpoint}`;
+  }
   if (!body && step.bodyTemplate) {
-    if (idx === 4) body = step.bodyTemplate(demoState.delegationToken);
-    else if (idx === 5) body = step.bodyTemplate(demoState.delegationToken);
-    else if (idx === 6) body = step.bodyTemplate(demoState.transactionId);
+    body = step.bodyTemplate(step.id === 'complete-transaction' ? demoState.transactionId : demoState.delegationToken);
 
     const reqBlock = document.getElementById(`request-${idx}`);
-    reqBlock.innerHTML = `${step.method} ${step.endpoint}\n\n${formatJson(body)}`;
+    reqBlock.innerHTML = `${step.method} ${endpoint}\n\n${formatJson(body)}`;
   }
 
   const startTime = performance.now();
 
   try {
-    const response = await fetch(step.endpoint, {
+    await ensureSession();
+    const fetchOpts = {
       method: step.method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    };
+    // GET requests must not have a body (browsers reject it; Workers will ignore it)
+    if (step.method !== 'GET' && body !== null) {
+      fetchOpts.body = JSON.stringify(body);
+    }
+    const response = await fetch(endpoint, fetchOpts);
 
     const totalTime = Math.round(performance.now() - startTime);
     const data = await response.json();
@@ -2340,10 +2398,10 @@ async function runStep(idx) {
 
     // Store state
     demoState.responses[idx] = data;
-    if (idx === 3 && data.data?.delegation?.token) {
+    if (step.id === 'delegate' && data.data?.delegation?.token) {
       demoState.delegationToken = data.data.delegation.token;
     }
-    if (idx === 4 && data.data?.transaction?.id) {
+    if (step.id === 'initiate-transaction' && data.data?.transaction?.id) {
       demoState.transactionId = data.data.transaction.id;
     }
 
@@ -2404,10 +2462,16 @@ async function runStep(idx) {
 
       // Update next step's request display if it depends on previous data
       const nextStep = DEMO_STEPS[idx + 1];
-      if (nextStep.bodyTemplate) {
-        const depValue = (idx + 1 <= 5) ? demoState.delegationToken : demoState.transactionId;
+      const nextReqBlock = document.getElementById(`request-${idx + 1}`);
+      if (nextStep.endpointTemplate) {
+        // Dynamic-URL step (e.g. GET /api/agent/:id/kya) — resolve endpoint from prior response
+        const agentId = demoState.responses[2]?.data?.id;
+        if (agentId) {
+          nextReqBlock.innerHTML = `${nextStep.method} ${nextStep.endpointTemplate(agentId)}`;
+        }
+      } else if (nextStep.bodyTemplate) {
+        const depValue = nextStep.id === 'complete-transaction' ? demoState.transactionId : demoState.delegationToken;
         if (depValue) {
-          const nextReqBlock = document.getElementById(`request-${idx + 1}`);
           const nextBody = nextStep.bodyTemplate(depValue);
           nextReqBlock.innerHTML = `${nextStep.method} ${nextStep.endpoint}\n\n${formatJson(nextBody)}`;
         }
@@ -2457,6 +2521,12 @@ async function runAllSteps() {
 // ─── Reset ───────────────────────────────────────────────────────────────────
 
 async function resetDemo() {
+  if (demoState.stepInFlight.size) return;
+  try {
+    await ensureSession();
+    const response = await fetch('/api/reset', { method: 'POST', credentials: 'same-origin' });
+    if (!response.ok) throw new Error((await response.json()).error || 'Reset unavailable');
+  } catch (error) { window.alert(error.message); return; }
   // Generate a new session so all KV keys are fresh (guarantees cold reads)
   sessionId = generateSessionId();
   DEMO_STEPS = buildDemoSteps(sessionId);

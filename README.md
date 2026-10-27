@@ -1,5 +1,7 @@
 # Agentic Commerce Registry — Cloudflare Workers Demo
 
+See [production guardrails, session ownership, budgets and deployment readiness](docs/app-garden-guardrails.md). Wrangler bundles the hardened `src/production.ts`; the KYA verification flow below lives in the full local demo (`src/index.ts`, exercised by `npm test`) and is not part of the hosted deployment.
+
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Gryczka/agentic-commerce-registry-demo)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Built with Hono](https://img.shields.io/badge/Built%20with-Hono-E36002)](https://hono.dev)
@@ -55,7 +57,7 @@ Each step returns a `_trace` array showing every KV operation and its wall-clock
 
 ```
 Browser (public/index.html)
-    ���   Fetch API calls to /api/*
+    │   Fetch API calls to /api/*
     ▼
 Cloudflare Workers Runtime  (src/index.ts)
     │   Hono router handles routing + CORS
@@ -71,7 +73,19 @@ Cloudflare Static Assets  (public/)
 Response (JSON + _trace + _colo fields)
 ```
 
-The Worker has **no external dependencies at runtime** beyond Hono. All persistence is Workers KV; all static files are served from the same Worker via the `ASSETS` binding.
+The Worker also makes outbound `fetch()` calls to an external **KYA (Know Your Agent) provider** during agent registration. This is intentionally a plain HTTP call (not a service binding) to simulate a real external API. If the KYA provider is unreachable, the agent still registers with `kyaVerificationStatus: "PENDING"` — KYA failure never blocks registration.
+
+```
+Browser (public/index.html)
+    │   Fetch API calls to /api/*
+    ▼
+Cloudflare Workers Runtime  (src/index.ts)
+    │   POST /api/register/agent
+    │       └── fetch() → KYA Provider (external HTTP)
+    │                         (mock Worker / Lambda / hosted provider)
+    ▼
+Workers KV  (REGISTRY namespace)
+```
 
 ---
 
@@ -80,15 +94,26 @@ The Worker has **no external dependencies at runtime** beyond Hono. All persiste
 ```
 .
 ├── src/
-│   └── index.ts          # Worker entry point — Hono app, KV logic, all 8 route handlers
+│   └── index.ts              # Worker entry point — Hono app, KV logic, all route handlers
+├── kya-provider-mock/        # Separately deployable mock KYA provider Worker
+│   ├── src/index.ts          # Hono app: POST /kya/token, GET /kya/verify/:id, GET /health
+│   ├── wrangler.jsonc        # Worker name: kya-provider-mock
+│   ├── package.json
+│   └── tsconfig.json
+├── test/
+│   ├── env.d.ts              # Ambient cloudflare:test type declarations
+│   ├── agent-registration.test.ts  # Integration tests: KYA happy path, KV, trace
+│   ├── kya-failure.test.ts   # Resilience tests: 500, 503, bad JSON, network error
+│   └── kya-provider.test.ts  # Unit tests for the mock KYA provider
 ├── public/
-│   ├── index.html        # Single-file SPA — inline CSS, HTML, and JavaScript
-│   ├── fonts/            # Custom web fonts (Kunst Grotesk, Apercu Mono Pro)
+│   ├── index.html            # Single-file SPA — inline CSS, HTML, and JavaScript
+│   ├── fonts/                # Custom web fonts (Kunst Grotesk, Apercu Mono Pro)
 │   └── logos/
 │       └── cloudflare.svg
 ├── docs/
-│   └── screenshot.png    # Demo UI screenshot
-├── wrangler.jsonc         # Wrangler configuration — KV binding, assets, compat flags
+│   └── screenshot.png        # Demo UI screenshot
+├── wrangler.jsonc             # Wrangler configuration — KV binding, assets, KYA_PROVIDER_URL
+├── vitest.config.ts           # Vitest config using @cloudflare/vitest-pool-workers
 ├── package.json
 ├── tsconfig.json
 └── LICENSE
@@ -125,7 +150,23 @@ npx wrangler kv namespace create REGISTRY
 
 # 6. Start the local dev server
 npm run dev
+
+# 7. Run the test suite (28 tests across 3 files)
+npm test
 ```
+
+#### Deploying the mock KYA provider
+
+The mock KYA provider is a separate deployable Worker. Deploy it once before running the registry Worker:
+
+```bash
+cd kya-provider-mock
+npm install
+npx wrangler deploy
+# → deployed to https://kya-provider-mock.<your-account>.workers.dev
+```
+
+Then set `KYA_PROVIDER_URL` in `wrangler.jsonc` to the deployed URL.
 
 The dev server starts at `http://localhost:8787`. Wrangler uses a local KV simulation by default, so no data is written to your Cloudflare account during development.
 
@@ -140,6 +181,50 @@ Wrangler will bundle the TypeScript, upload the Worker script, and deploy static
 
 ---
 
+## KYA Integration (Know Your Agent)
+
+Agent registration includes an optional **KYA verification** step — an external identity check that attaches a signed token to the agent record. Tokens use a provider-neutral, JWT-style claim set so the registry can be swapped to a real provider without any code changes.
+
+### Three-phase roadmap
+
+| Phase | Provider | Transport | Status |
+|-------|----------|-----------|--------|
+| 1 | Mock Cloudflare Worker (`kya-provider-mock/`) | Plain `fetch()` to `https://kya-provider-mock.workers.dev` | **Current** |
+| 2 | AWS Lambda | Plain `fetch()` to API Gateway URL | Planned |
+| 3 | Hosted KYA provider API | Plain `fetch()` to the provider endpoint | Planned |
+
+All phases use plain `fetch()` — never a Cloudflare service binding — so each provider is truly external and cross-cloud swappable.
+
+### Graceful degradation
+
+If the KYA provider returns an error or is unreachable, the agent still registers successfully:
+
+```json
+{
+  "kyaVerificationStatus": "PENDING",
+  "kyaProvider": "unavailable"
+}
+```
+
+A `kya_verify` span is added to `_trace` with `"status": "error"` so the failure is visible in the request timeline.
+
+### KYA token format
+
+Tokens use a JWT-style format: `base64url(header).base64url(payload).mock-sig`
+
+The payload carries `bid.verification_status` (`"VERIFIED"`), `bid.agent_id`, `apd.provider`, and `"mock": true` (removed when using a real provider).
+
+### Environment variable
+
+```jsonc
+// wrangler.jsonc
+"vars": {
+  "KYA_PROVIDER_URL": "https://kya-provider-mock.workers.dev"
+}
+```
+
+---
+
 ## API Reference
 
 All endpoints are served by the Worker at `/api/*`. Responses include:
@@ -149,14 +234,15 @@ All endpoints are served by the Worker at `/api/*`. Responses include:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/shopper` | Register a new shopper with credit profile |
-| `POST` | `/api/merchant` | Register a new merchant with accepted payment types |
-| `POST` | `/api/agent` | Register an AI agent with declared capabilities |
-| `POST` | `/api/delegation` | Grant an agent scoped authority to act on a shopper's behalf |
-| `POST` | `/api/transaction` | Initiate a purchase (agent validates delegation, checks limits) |
-| `PUT` | `/api/transaction` | Complete a pending transaction |
-| `GET` | `/api/audit` | Retrieve the full audit trail for a session |
-| `GET` | `/api/health` | Health check — returns Worker status and KV connectivity |
+| `POST` | `/api/register/shopper` | Register a new shopper with credit profile |
+| `POST` | `/api/register/merchant` | Register a new merchant with accepted payment types |
+| `POST` | `/api/register/agent` | Register an AI agent; calls KYA provider for identity verification |
+| `GET`  | `/api/agent/:id/kya` | Retrieve KYA token and verification status for a registered agent |
+| `POST` | `/api/delegate` | Grant an agent scoped authority to act on a shopper's behalf |
+| `POST` | `/api/verify` | Verify a delegation token (merchant-side) |
+| `POST` | `/api/transaction/initiate` | Initiate a purchase (validates delegation, enforces limits) |
+| `POST` | `/api/transaction/complete` | Complete a pending transaction |
+| `POST` | `/api/reset` | Clear all demo data from KV |
 
 ---
 
@@ -172,15 +258,16 @@ Workers are JavaScript/TypeScript functions that run on Cloudflare's edge networ
 
 ### Bindings
 
-[Bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/) connect a Worker to Cloudflare resources. They are declared in `wrangler.jsonc` and injected into the Worker's environment at runtime. This demo uses two bindings:
+[Bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/) connect a Worker to Cloudflare resources. They are declared in `wrangler.jsonc` and injected into the Worker's environment at runtime. This demo uses three bindings:
 
 ```jsonc
 // wrangler.jsonc
 "kv_namespaces": [{ "binding": "REGISTRY", "id": "<your-namespace-id>" }],
-"assets": { "binding": "ASSETS", "directory": "./public" }
+"assets": { "binding": "ASSETS", "directory": "./public" },
+"vars": { "KYA_PROVIDER_URL": "https://kya-provider-mock.workers.dev" }
 ```
 
-Inside the Worker, they're accessed as `c.env.REGISTRY` and `c.env.ASSETS`.
+Inside the Worker, they're accessed as `c.env.REGISTRY`, `c.env.ASSETS`, and `c.env.KYA_PROVIDER_URL`.
 
 ### Hono
 
